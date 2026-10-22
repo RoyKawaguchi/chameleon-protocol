@@ -1,45 +1,87 @@
-import { useEffect, useState } from "react";
-import { io } from "socket.io-client";
+import { useState, useEffect, useRef } from 'react';
+import { io, Socket } from 'socket.io-client';
+import { JoinPayload, Message } from './types';
+import { LoginForm } from './components/LoginForm';
+import { ChatRoom } from './components/ChatRoom';
+import './App.css';
 
-const socket = io("http://localhost:4000", {
-  autoConnect: false,
-});
+export default function App() {
+  const [isJoined, setIsJoined] = useState(false);
+  const [currentUser, setCurrentUser] = useState('');
+  const [roomCode, setRoomCode] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+  const [messages, setMessages] = useState<Message[]>([]);
 
-function App() {
-  const [isConnected, setIsConnected] = useState(false);
+  const socketRef = useRef<Socket | null>(null);
+
+  const handleJoin = ({ username, roomCode }: JoinPayload) => {
+    const socket = io('http://localhost:3000', {
+      auth: {
+        code: roomCode,
+        username: username,
+      },
+    });
+
+    socketRef.current = socket;
+
+    socket.on('connect', () => {
+      setIsJoined(true);
+      setCurrentUser(username);
+      setRoomCode(roomCode);
+      setErrorMessage('');
+    });
+
+    socket.on('room_error', (data: { message: string }) => {
+      setErrorMessage(data.message);
+      setIsJoined(false);
+      socket.disconnect();
+    });
+
+    // Receive incoming uppercased messages from server
+    socket.on('receive_message', (message: Message) => {
+      setMessages((prev) => [...prev, message]);
+    });
+  };
+
+  const handleSendMessage = (text: string) => {
+    if (socketRef.current) {
+      socketRef.current.emit('send_message', { text });
+    }
+  };
+
+  const handleLeave = () => {
+    if (socketRef.current) {
+      socketRef.current.disconnect();
+    }
+    setIsJoined(false);
+    setCurrentUser('');
+    setRoomCode('');
+    setMessages([]);
+  };
 
   useEffect(() => {
-    const onConnect = () => {
-      setIsConnected(true);
-      console.log(`[Socket] Connected: ${socket.id}`);
-    };
-
-    const onDisconnect = () => {
-      setIsConnected(false);
-      console.log("[Socket] Disconnected");
-    };
-
-    socket.on("connect", onConnect);
-    socket.on("disconnect", onDisconnect);
-    socket.connect();
-
     return () => {
-      socket.off("connect", onConnect);
-      socket.off("disconnect", onDisconnect);
-      socket.disconnect();
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+      }
     };
   }, []);
 
   return (
-    <main className="chat">
-      <div className="sender">
-        <h1>Sender</h1>
-      </div>
-      <div className="message">
-        <h1>Message</h1>
-      </div>
-    </main>
+    <div style={{ maxWidth: '400px', margin: '50px auto', fontFamily: 'Arial, sans-serif' }}>
+      <h2>Chameleon Protocol — Room Test</h2>
+
+      {!isJoined ? (
+        <LoginForm onJoin={handleJoin} errorMessage={errorMessage} />
+      ) : (
+        <ChatRoom
+          username={currentUser}
+          roomCode={roomCode}
+          messages={messages}
+          onSendMessage={handleSendMessage}
+          onLeave={handleLeave}
+        />
+      )}
+    </div>
   );
 }
-
-export default App;
