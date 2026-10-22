@@ -1,0 +1,9 @@
+{
+  "name": "chameleon-protocol",
+  "version": "1.0.0",
+  "description": "Chameleon Protocol: A Real-Time Multiplayer Social Deduction Game",
+  "private": true,
+  "scripts": {
+    "setup": "npm ci --prefix client && npm ci --prefix server"
+  }
+}
