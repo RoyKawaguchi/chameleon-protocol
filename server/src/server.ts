@@ -1,6 +1,7 @@
 import express from "express";
 import { createServer } from "node:http";
 import { Server } from "socket.io";
+import { Message } from "./models/types";
 
 const app = express();
 const httpServer = createServer(app);
@@ -15,62 +16,106 @@ app.get("/", (_req, res) => {
   res.send("Chameleon Protocol server is running.");
 });
 
-// For now, let's say the passcode is hardcoded to 1234.
 const PASSCODE = "1234";
+const roomName = "room_1234";
+const roomMembers = new Set<string>();
+const roomMessages: Message[] = [];
 
 // Runs every time a new client connects to the server
 io.on("connection", (socket) => {
   console.log(`Client connected: ${socket.id}`);
 
-  // 1. Read code and username sent from the frontend during connection
+  // Read code and username sent from the frontend during connection
   const { code, username } = socket.handshake.auth;
   const playerName = username || "Anonymous";
 
-  // 2. Validate code
+  // If passcode is incorrect, don't allow them to enter.
   if (code !== PASSCODE) {
-    console.log(`Access denied for ${socket.id} with username ${playerName}: Invalid code (${code})`);
-    
-    // Tell the specific client why they failed, then disconnect them
-    socket.emit("room_error", { message: "Wrong passcode! Access denied." });
+    console.log(
+      `Access denied for ${socket.id} with username ${playerName}: Invalid code (${code})`
+    );
+
+    // Send back error message
+    socket.emit("room_error", {
+      message: "Wrong passcode! Access denied.",
+    });
     socket.disconnect();
     return; // Stop running code for this connection
   }
 
-  // 3. If passcode is correct, put this socket into a room
-  const roomName = "room_1234";
+  // Passcode is correct!
+  // 1. Put this socket connection into a room
   socket.join(roomName);
-  console.log(`Player ${playerName} (${socket.id}) successfully joined ${roomName}`);
+  console.log(
+    `Player ${playerName} (${socket.id}) successfully joined ${roomName}`
+  );
 
-  // Broadcast a system message to everyone in the room (including the sender)
-  io.to(roomName).emit("receive_message", {
+  // add the member to the in-memory state
+  roomMembers.add(playerName);
+
+  // 2. Construct the join message
+  const joinMessage: Message = {
     sender: "System",
     text: `${playerName} has entered the room.`,
     timestamp: new Date().toLocaleTimeString(),
+  };
+
+  // add message to in-memory state
+  roomMessages.push(joinMessage);
+
+  // 3. Emit a room update
+  io.to(roomName).emit("room_update", {
+    members: Array.from(roomMembers),
+    messages: roomMessages,
   });
 
-  // 4. Listen for chat messages sent from this client
-  // Listen for chat messages from this client
+  // --END OF CONNECTION LOGIC---
+
+  // Client sent a message
   socket.on("send_message", (data: { text: string }) => {
-    // 1. Transform text to UPPERCASE on the backend
+    // Uppercase the message (to prove that the server has processed it)
     const uppercaseText = data.text.toUpperCase();
 
     console.log(`[Chat] ${playerName}: "${data.text}" -> "${uppercaseText}"`);
 
-    // 2. Broadcast the uppercased message to EVERYONE in the room
-    io.to(roomName).emit("receive_message", {
+    // Construct the message
+    const newMessage: Message = {
       sender: playerName,
       text: uppercaseText,
       timestamp: new Date().toLocaleTimeString(),
+    };
+
+    // add message
+    roomMessages.push(newMessage);
+
+    // Emit room update
+    io.to(roomName).emit("room_update", {
+      members: Array.from(roomMembers),
+      messages: roomMessages,
     });
   });
-  
-  // 5. Handle disconnection
+
+  // One client disconnected
   socket.on("disconnect", () => {
     console.log(`Player disconnected: ${socket.id}`);
-    io.to(roomName).emit("receive_message", {
+
+    // Remove from room member list
+    roomMembers.delete(playerName);
+
+    // Construct message
+    const leaveMessage: Message = {
       sender: "System",
       text: `${playerName} has left the room.`,
       timestamp: new Date().toLocaleTimeString(),
+    };
+
+    // Add message
+    roomMessages.push(leaveMessage);
+
+    // Broadcast updated members and full messages
+    io.to(roomName).emit("room_update", {
+      members: roomMembers ? Array.from(roomMembers) : [],
+      messages: roomMessages || [],
     });
   });
 });
