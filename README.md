@@ -43,11 +43,9 @@ npm -v
 ### 1. Clone the Repository
 
 ```bash
-git clone <repository-url>
+git clone <https://github.com/RoyKawaguchi/chameleon-protocol>
 cd chameleon-protocol
 ```
-
-Replace `<repository-url>` with the repository URL provided by the team.
 
 ### 2. Install Dependencies
 

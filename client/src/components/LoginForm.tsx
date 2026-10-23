@@ -21,27 +21,37 @@ export const LoginForm: React.FC<LoginFormProps> = ({
     onJoin({ username, roomCode });
   };
 
+  // A bit messy. Maybe we can use some pre-made React template for forms like this?
   return (
-    <form onSubmit={handleSubmit}>
-      <label>Username:</label>
-      <input
-        value={username}
-        onChange={(e) => setUsername(e.target.value)}
-        placeholder="Enter your name"
-        required
-      />
+    <div style={{ display: "flex", flexDirection: "column" }}>
+      <form
+        onSubmit={handleSubmit}
+        style={{ display: "flex", flexDirection: "column", gap: "12px" }}
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+          <label>Username:</label>
+          <input
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            placeholder="Enter your name"
+            required
+          />
+        </div>
 
-      <label>Room Passcode (Try 1234):</label>
-      <input
-        type="password"
-        value={roomCode}
-        onChange={(e) => setRoomCode(e.target.value)}
-        placeholder="Passcode"
-        required
-      />
+        <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+          <label>Room Passcode (Try 1234):</label>
+          <input
+            type="password"
+            value={roomCode}
+            onChange={(e) => setRoomCode(e.target.value)}
+            placeholder="Passcode"
+            required
+          />
+        </div>
 
-      <button type="submit">Enter Room</button>
-      {errorMessage && <p>{errorMessage}</p>}
-    </form>
+        <button type="submit">Enter Room</button>
+        {errorMessage && <p>{errorMessage}</p>}
+      </form>
+    </div>
   );
 };
