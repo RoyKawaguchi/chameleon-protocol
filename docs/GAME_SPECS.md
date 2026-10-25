@@ -47,7 +47,8 @@ The Host configures room parameters before starting the game:
 
 ### Phase 2: Role & Secret Distribution
 
-- Backend randomly selects a Category and Target Word.
+- Host chooses category
+- Backend randomly selects a Target Word in the category.
 - Backend assigns 1 player as Chameleon, remaining as Loyal Agents.
 - Secret payload dispatched via Socket.IO:
   - **Loyal Agents:** Category, Target Word, Full Word List.
@@ -66,7 +67,8 @@ The Host configures room parameters before starting the game:
 
 ### Phase 4: Discussion (`DiscussionState`)
 
-- Unified WhatsApp-style chat feed opens for free-form messaging (all prior clues remain visible at the top).
+- (MVP) "Discuss Now!" + timer
+- (Should) Unified WhatsApp-style chat feed opens for free-form messaging (all prior clues remain visible at the top).
 - Countdown timer runs for the set discussion duration.
 - **Host Facilitator Controls:**
   - **Cut Short:** Immediately end discussion and jump to voting.
