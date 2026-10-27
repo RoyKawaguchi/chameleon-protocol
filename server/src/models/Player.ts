@@ -10,7 +10,7 @@ export class Player {
   public readonly socketId: string;
   public readonly username: string;
   public readonly isHost: boolean;
-  public readonly role: Role;
+  public role: Role;
   public readonly score: number;
 
   constructor(socketId: string, username: string, isHost: boolean = false) {
