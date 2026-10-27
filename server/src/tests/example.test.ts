@@ -1,3 +1,7 @@
+import { Player } from "../models/Player";
+import { GameRoom } from "../game/GameRoom";
+import { GameState } from "../game/states/GameState";
+
 // Example tests
 
 describe("Chameleon Protocol - GameRoom & Player Unit Tests", () => {
@@ -6,4 +10,9 @@ describe("Chameleon Protocol - GameRoom & Player Unit Tests", () => {
   });
 
   it("should remove players correctly", () => {});
+
+  it("LobbyState properly transitions to CluePhaseState", () =>
+  {
+
+  })
 });
