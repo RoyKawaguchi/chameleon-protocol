@@ -1,14 +1,21 @@
 import express from "express";
-import { createServer } from "node:http";
 import { Server } from "socket.io";
-import { Message } from "./models/types";
+
+import { GameRoom } from "./game/GameRoom";
+import { SocketEvent } from "./models/types";
+
+import http from "http";
+import cors from "cors";
 
 const app = express();
-const httpServer = createServer(app);
+app.use(cors());
+app.use(express.json());
 
-const io = new Server(httpServer, {
+const server = http.createServer(app);
+const io = new Server(server, {
   cors: {
-    origin: "http://localhost:5173", // Default Vite dev server port for React
+    origin: "http://localhost:5173", // Adjust for client URL in production
+    methods: ["GET", "POST"],
   },
 });
 
@@ -16,111 +23,44 @@ app.get("/", (_req, res) => {
   res.send("Chameleon Protocol server is running.");
 });
 
-const PASSCODE = "1234";
-const roomName = "room_1234";
-const roomMembers = new Set<string>();
-const roomMessages: Message[] = [];
+// Active room registry mapping 6-character room codes to GameRoom instances
+const activeRooms = new Map<string, GameRoom>();
 
-// Runs every time a new client connects to the server
 io.on("connection", (socket) => {
-  console.log(`Client connected: ${socket.id}`);
+  console.log(`[Connection] User connected: ${socket.id}`);
 
-  // Read code and username sent from the frontend during connection
-  const { code, username } = socket.handshake.auth;
-  const playerName = username || "Anonymous";
+  socket.on(SocketEvent.CREATE_ROOM, ({ username }) => {
+    // Hardcode room code for now
+    const roomId = "123ABC";
 
-  // If passcode is incorrect, don't allow them to enter.
-  if (code !== PASSCODE) {
-    console.log(
-      `Access denied for ${socket.id} with username ${playerName}: Invalid code (${code})`
-    );
-
-    // Send back error message
-    socket.emit("room_error", {
-      message: "Wrong passcode! Access denied.",
+    // Create a new GameRoom object.
+    // We pass the callback function to the constructor, so that GameRoom can emit events itself.
+    const room = new GameRoom(roomId, (event, payload) => {
+      io.to(roomId).emit(event, payload);
     });
-    socket.disconnect();
-    return; // Stop running code for this connection
-  }
 
-  // Passcode is correct!
-  // 1. Put this socket connection into a room
-  socket.join(roomName);
-  console.log(
-    `Player ${playerName} (${socket.id}) successfully joined ${roomName}`
-  );
+    // Add the host player to the room
+    room.addPlayer(socket.id, username);
 
-  // add the member to the in-memory state
-  roomMembers.add(playerName);
+    // Add room to registry
+    activeRooms.set(roomId, room);
 
-  // 2. Construct the join message
-  const joinMessage: Message = {
-    sender: "System",
-    text: `${playerName} has entered the room.`,
-    timestamp: new Date().toLocaleTimeString(),
-  };
-
-  // add message to in-memory state
-  roomMessages.push(joinMessage);
-
-  // 3. Emit a room update
-  io.to(roomName).emit("room_update", {
-    members: Array.from(roomMembers),
-    messages: roomMessages,
+    // Add player to the Socket room too
+    socket.join(roomId);
   });
 
-  // --END OF CONNECTION LOGIC---
+  socket.on(SocketEvent.JOIN_ROOM, ({ username }) => {});
 
-  // Client sent a message
-  socket.on("send_message", (data: { text: string }) => {
-    // Uppercase the message (to prove that the server has processed it)
-    const uppercaseText = data.text.toUpperCase();
+  // Example event delegation hook:
+  // socket.on("submit_clue", ({ roomId, username, content, ... }) => { ... });
 
-    console.log(`[Chat] ${playerName}: "${data.text}" -> "${uppercaseText}"`);
-
-    // Construct the message
-    const newMessage: Message = {
-      sender: playerName,
-      text: uppercaseText,
-      timestamp: new Date().toLocaleTimeString(),
-    };
-
-    // add message
-    roomMessages.push(newMessage);
-
-    // Emit room update
-    io.to(roomName).emit("room_update", {
-      members: Array.from(roomMembers),
-      messages: roomMessages,
-    });
-  });
-
-  // One client disconnected
   socket.on("disconnect", () => {
-    console.log(`Player disconnected: ${socket.id}`);
-
-    // Remove from room member list
-    roomMembers.delete(playerName);
-
-    // Construct message
-    const leaveMessage: Message = {
-      sender: "System",
-      text: `${playerName} has left the room.`,
-      timestamp: new Date().toLocaleTimeString(),
-    };
-
-    // Add message
-    roomMessages.push(leaveMessage);
-
-    // Broadcast updated members and full messages
-    io.to(roomName).emit("room_update", {
-      members: roomMembers ? Array.from(roomMembers) : [],
-      messages: roomMessages || [],
-    });
+    console.log(`[Disconnection] User disconnected: ${socket.id}`);
+    // Handle immediate room reset per your rule
   });
 });
 
-const PORT = Number(process.env.PORT) || 3000;
-httpServer.listen(PORT, () => {
-  console.log(`Server listening on http://localhost:${PORT}`);
+const PORT = process.env.PORT || 4000;
+server.listen(PORT, () => {
+  console.log(`[Server] Chameleon Protocol server running on port ${PORT}`);
 });
