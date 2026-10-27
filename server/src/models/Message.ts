@@ -8,8 +8,8 @@ export abstract class Message {
   public readonly timestamp: number;
   public readonly content: string;
 
-  protected constructor(id: string, content: string) {
-    this.id = id;
+  protected constructor(content: string) {
+    this.id = crypto.randomUUID();
     this.timestamp = Date.now();
     this.content = content;
   }
@@ -20,8 +20,8 @@ export abstract class Message {
  * For example, "System: Roy's turn to send his 1st clue!"
  */
 export class SystemMessage extends Message {
-  public constructor(id: string, content: string) {
-    super(id, content);
+  public constructor(content: string) {
+    super(content);
   }
 }
 
@@ -30,8 +30,9 @@ export class SystemMessage extends Message {
  */
 export abstract class PlayerMessage extends Message {
   public readonly sender: Player;
-  public constructor(id: string, sender: Player, content: string) {
-    super(id, content);
+
+  public constructor(sender: Player, content: string) {
+    super(content);
     this.sender = sender;
   }
 }
@@ -42,18 +43,14 @@ export abstract class PlayerMessage extends Message {
 export class ClueMessage extends PlayerMessage {
   public readonly roundNumber: number;
 
-  constructor(
-    id: string,
-    sender: Player,
-    content: string,
-    roundNumber: number
-  ) {
-    super(id, sender, content);
+  constructor(sender: Player, content: string, roundNumber: number) {
+    super(sender, content);
     this.validateClueContent(content);
     this.roundNumber = roundNumber;
   }
 
   private validateClueContent(content: string): void {
+    // TODO:
     // Ensure clue is not too long (maybe max 15 chars?)
     // No space, punctuation, etc.
     // Throw an Error if any rule is broken. i.e., don't allow instantiation
@@ -64,7 +61,7 @@ export class ClueMessage extends PlayerMessage {
  * Standard text message sent during DiscussionState open chat.
  */
 export class ChatTextMessage extends PlayerMessage {
-  constructor(id: string, sender: Player, content: string) {
-    super(id, sender, content);
+  constructor(sender: Player, content: string) {
+    super(sender, content);
   }
 }

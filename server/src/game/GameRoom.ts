@@ -8,16 +8,17 @@
 import { Player } from "../models/Player";
 import { GameConfig, CategoryPool } from "../models/types";
 import { GameState } from "./states/GameState";
+import { LobbyState } from "./states/LobbyState";
 
 export class GameRoom {
   public roomId: string;
   private broadcast: (event: string, payload: any) => void;
   public players: Map<string, Player>; // socketId -> Player (prevent two Player objects with same socketID)
-  public categoryPool: CategoryPool;
-  public activeCategory: string | null;
+  public categoryPool: CategoryPool[];
+  public activeCategory: string | undefined;
   public secretWord: string | null;
   public config: GameConfig;
-  // public currentState: GameState;
+  public currentState: GameState;
 
   constructor(
     roomId: string,
@@ -26,17 +27,22 @@ export class GameRoom {
     this.roomId = roomId;
     this.broadcast = broadcast;
     this.players = new Map<string, Player>();
-    this.categoryPool = {
-      // Default initial preset categories can be loaded here
-      Animals: ["Elephant", "Dolphin", "Penguin", "Kangaroo", "Giraffe"],
-      Food: ["Pizza", "Sushi", "Tacos", "Burger", "Ramen"],
-    };
-    this.activeCategory = null;
+    this.categoryPool = [
+      {
+        categoryName: "Animals",
+        categories: ["Elephant", "Dolphin", "Penguin", "Kangaroo", "Giraffe"],
+      },
+      {
+        categoryName: "Food",
+        categories: ["Pizza", "Sushi", "Tacos", "Burger", "Ramen"],
+      },
+    ];
+    this.activeCategory = this.categoryPool[0]?.categoryName;
     this.secretWord = null;
     this.config = {
       clueRounds: 1,
     };
-    // this.currentState = new LobbyState(); // Initial state
+    this.currentState = new LobbyState();
   }
 
   /**
@@ -68,7 +74,7 @@ export class GameRoom {
 
   /**
    * Constructs a json payload containing room state information.
-   * Then broadcasts it to all connected clients via Socket.IO.
+   * Then broadcasts it to all connected clients via Socket.IO. (By calling this.broadcast(event, payload))
    */
   public broadcastState(): void {}
 }

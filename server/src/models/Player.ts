@@ -7,11 +7,11 @@
 import { Role } from "./types";
 
 export class Player {
-  private socketId: string;
-  private username: string;
-  private isHost: boolean;
-  private role: Role;
-  private score: number;
+  public readonly socketId: string;
+  public readonly username: string;
+  public readonly isHost: boolean;
+  public readonly role: Role;
+  public readonly score: number;
 
   constructor(socketId: string, username: string, isHost: boolean = false) {
     this.socketId = socketId;

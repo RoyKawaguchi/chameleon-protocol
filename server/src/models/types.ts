@@ -17,20 +17,14 @@ export enum GamePhase {
 }
 
 export interface CategoryPool {
-  [categoryName: string]: string[];
+  categoryName: string;
+  categories: string[];
 }
 
 export interface GameConfig {
   clueRounds: number;
   // + some other configs in future
 }
-
-// Only for prototype. Delete later.
-// export interface Message {
-//   sender: string;
-//   text: string;
-//   timestamp: string;
-// }
 
 export enum SocketEvent {
   // Client -> Server Actions
@@ -45,4 +39,48 @@ export enum SocketEvent {
   // Server -> Client Broadcasts
   ROOM_UPDATED = "room_updated",
   ERROR_MESSAGE = "error_message",
+}
+
+export interface CreateRoomPayload {
+  username: string;
+}
+
+export interface JoinRoomPayload {
+  username: string;
+  roomCode: string;
+}
+
+export interface ToggleCategoryPayload {
+  categoryName: string;
+}
+
+export interface SubmitCluePayload {
+  clueText: string;
+}
+
+export interface SendChatPayload {
+  text: string;
+}
+
+export interface CastVotePayload {
+  targetId: string;
+}
+
+// 3. Server -> Client Payload (The Room State Snapshot)
+export interface RoomStatePayload {
+  roomId: string;
+  gamePhase: string;
+  players: PlayerDto[];
+  config: GameConfig;
+  activeCategory: string | null;
+  timerEndsAt?: number; // Optional, active during timed phases
+}
+
+export interface PlayerDto {
+  socketId: string;
+  username: string;
+  isHost: boolean;
+  isAlive: boolean;
+  score: number;
+  role?: string; // Only sent privately or revealed at end of game
 }
