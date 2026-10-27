@@ -52,7 +52,20 @@ io.on("connection", (socket) => {
   socket.on(SocketEvent.JOIN_ROOM, ({ username }) => {});
 
   // Example event delegation hook:
-  // socket.on("submit_clue", ({ roomId, username, content, ... }) => { ... });
+  // socket.on(SocketEvent.SUBMIT_CLUE, ({ roomId, content }) => {
+  //   const room = activeRooms.get(roomId);
+  //   const player = room?.players.get(socket.id);
+  //   if (!player) {
+  //     // TODO: emit error
+  //     return;
+  //   }
+  //   room?.currentState.handleAction(
+  //     room,
+  //     player,
+  //     SocketEvent.SUBMIT_CLUE,
+  //     content
+  //   );
+  // });
 
   socket.on("disconnect", () => {
     console.log(`[Disconnection] User disconnected: ${socket.id}`);
