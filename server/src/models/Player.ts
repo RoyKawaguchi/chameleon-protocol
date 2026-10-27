@@ -20,18 +20,4 @@ export class Player {
     this.role = Role.AGENT; // Default until assigned by game start
     this.score = 0;
   }
-
-  /**
-   * Submits a single-word clue during the CluePhase.
-   */
-  public submitClue(clue: string): void {
-    // Validation handled by the state machine / game rules engine
-  }
-
-  /**
-   * Casts an accusation vote onto another player's socketId during VotingState.
-   */
-  public castVote(targetId: string): void {
-    // Vote registration logic
-  }
 }
