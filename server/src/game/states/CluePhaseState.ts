@@ -2,6 +2,8 @@ import { Player } from "../../models/Player";
 import { ClueMessage } from "../../models/Message";
 import { GameRoom } from "../GameRoom";
 import { GameState } from "./GameState";
+import { GamePhase } from "../../models/types";
+import { DiscussionState } from "./DiscussionState";
 import { SocketEvent } from "../../models/types";
 
 export class CluePhaseState extends GameState {
@@ -13,6 +15,7 @@ export class CluePhaseState extends GameState {
 
   constructor(playerOrder: readonly Player[], clueRoundLimit: number) {
     super();
+    this.gamePhase = GamePhase.CLUE_PHASE;
     this.currentRound = 1;
     this.clueRoundLimit = clueRoundLimit;
     this.playerOrder = [...playerOrder];
@@ -21,9 +24,19 @@ export class CluePhaseState extends GameState {
 
   public onEnter?(room: GameRoom): void {
     // TODO: emit a system message
+    room.broadcastState();
   }
 
-  public handleAction(room: GameRoom, player: Player, payload: any): void {
+  public handleAction(
+    room: GameRoom,
+    player: Player,
+    event: SocketEvent,
+    payload: any
+  ): void {
+    if (event != SocketEvent.SUBMIT_CLUE) {
+      // TODO: throw error
+      return;
+    }
     try {
       this.validateRound(player, payload);
 
@@ -34,6 +47,11 @@ export class CluePhaseState extends GameState {
       );
 
       this.submittedClues.push(clueMsg);
+
+      // ---TEMPORARY---
+      if (this.submittedClues.length >= 2) {
+        this.transitionNext(room);
+      }
 
       // TODO: Check whether the current round is complete.
       // If every player has submitted, advance currentRound.
@@ -73,7 +91,11 @@ export class CluePhaseState extends GameState {
   }
 
   public transitionNext(room: GameRoom): void {
-    // TODO: Transition to DiscussionState once every player
-    // has submitted a clue for every configured clue round.
+    // TODO: Confirm that there is a correct number of clues.
+    // e.g. if players.size == 4 and rounds = 2, there should've been 8 clues.
+    // Then transition to new state
+
+    room.currentState = new DiscussionState();
+    room.currentState.onEnter?.(room);
   }
 }

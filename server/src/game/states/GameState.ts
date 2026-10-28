@@ -1,5 +1,6 @@
 import { Player } from "../../models/Player";
 import { GameRoom } from "../GameRoom";
+import { GamePhase } from "../../models/types";
 import { SocketEvent } from "../../models/types";
 
 /**
@@ -9,6 +10,7 @@ export abstract class GameState {
   /**
    * Handles player actions or inputs specific to the current phase.
    */
+  public gamePhase: GamePhase = GamePhase.LOBBY; // by default
   public abstract handleAction(
     room: GameRoom,
     player: Player,

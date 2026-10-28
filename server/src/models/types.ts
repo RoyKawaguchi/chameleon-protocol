@@ -38,6 +38,7 @@ export enum SocketEvent {
 
   // Server -> Client Broadcasts
   ROOM_UPDATED = "room_updated",
+  ROLE_ASSIGNED = "role_assigned",
   ERROR_MESSAGE = "error_message",
 }
 
@@ -48,10 +49,6 @@ export interface CreateRoomPayload {
 export interface JoinRoomPayload {
   username: string;
   roomCode: string;
-}
-
-export interface ToggleCategoryPayload {
-  categoryName: string;
 }
 
 export interface SubmitCluePayload {
