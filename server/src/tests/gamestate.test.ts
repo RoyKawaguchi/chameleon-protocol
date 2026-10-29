@@ -38,17 +38,17 @@ describe("Chameleon Protocol - Game State Tests", () =>
             
             it("Is One (and only one) Player a chameleon?", () =>
                 {
-                    let isThereChameleon = false;
+                    let numChameleon = 0;
 
                     for(let [key, value] of dummyRoom.players)
                     {
                         if (value.role == Role.CHAMELEON)
                         {
-                            isThereChameleon = true;
+                            numChameleon++;
                         }
                     }
 
-                    expect(isThereChameleon).toBe(true);
+                    expect(numChameleon).toBe(1);
                 })
         })
 
