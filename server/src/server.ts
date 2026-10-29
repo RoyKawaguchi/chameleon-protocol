@@ -2,7 +2,12 @@ import express from "express";
 import { Server } from "socket.io";
 
 import { GameRoom } from "./game/GameRoom";
-import { SocketEvent } from "./models/types";
+import { Player } from "./models/Player";
+import {
+  SocketEvent,
+  JoinRoomPayload,
+  SubmitCluePayload,
+} from "./models/types";
 
 import http from "http";
 import cors from "cors";
@@ -25,6 +30,7 @@ app.get("/", (_req, res) => {
 
 // Active room registry mapping 6-character room codes to GameRoom instances
 const activeRooms = new Map<string, GameRoom>();
+const socketToRoomMap = new Map<string, string>();
 
 io.on("connection", (socket) => {
   console.log(`[Connection] User connected: ${socket.id}`);
@@ -35,9 +41,10 @@ io.on("connection", (socket) => {
 
     // Create a new GameRoom object.
     // We pass the callback function to the constructor, so that GameRoom can emit events itself.
-    const room = new GameRoom(roomId, (event, payload) => {
-      io.to(roomId).emit(event, payload);
+    const room = new GameRoom(roomId, (target, event, payload) => {
+      io.to(target).emit(event, payload);
     });
+    socketToRoomMap.set(socket.id, roomId);
 
     // Add the host player to the room
     room.addPlayer(socket.id, username);
@@ -49,23 +56,55 @@ io.on("connection", (socket) => {
     socket.join(roomId);
   });
 
-  socket.on(SocketEvent.JOIN_ROOM, ({ username }) => {});
+  socket.on(SocketEvent.JOIN_ROOM, ({ username, roomCode }) => {
+    try {
+      const [room, player] = getRoomAndPlayer(socket.id);
+      const payload: JoinRoomPayload = {
+        username: username,
+        roomCode: roomCode,
+      };
+
+      room.currentState.handleAction(
+        room,
+        player,
+        SocketEvent.JOIN_ROOM,
+        payload
+      );
+    } catch (error) {
+      console.error(
+        `[Error] Failed to join room for socket ${socket.id}:`,
+        error
+      );
+
+      socket.emit(SocketEvent.ERROR_MESSAGE, {
+        message: "JOIN_ROOM action failed. Room/player not found.",
+      });
+    }
+  });
 
   // Example event delegation hook:
-  // socket.on(SocketEvent.SUBMIT_CLUE, ({ roomId, content }) => {
-  //   const room = activeRooms.get(roomId);
-  //   const player = room?.players.get(socket.id);
-  //   if (!player) {
-  //     // TODO: emit error
-  //     return;
-  //   }
-  //   room?.currentState.handleAction(
-  //     room,
-  //     player,
-  //     SocketEvent.SUBMIT_CLUE,
-  //     content
-  //   );
-  // });
+  socket.on(SocketEvent.SUBMIT_CLUE, ({ clueText }) => {
+    try {
+      const [room, player] = getRoomAndPlayer(socket.id);
+      const payload: SubmitCluePayload = { clueText: clueText };
+
+      room.currentState.handleAction(
+        room,
+        player,
+        SocketEvent.SUBMIT_CLUE,
+        payload
+      );
+    } catch (error) {
+      console.error(
+        `[Error] Failed to submit clue for socket ${socket.id}:`,
+        error
+      );
+
+      socket.emit(SocketEvent.ERROR_MESSAGE, {
+        message: "SUBMIT_CLUE action failed. Room/player not found.",
+      });
+    }
+  });
 
   socket.on("disconnect", () => {
     console.log(`[Disconnection] User disconnected: ${socket.id}`);
@@ -77,3 +116,19 @@ const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => {
   console.log(`[Server] Chameleon Protocol server running on port ${PORT}`);
 });
+
+function getRoomAndPlayer(socketId: string): [GameRoom, Player] {
+  const roomId = socketToRoomMap.get(socketId);
+  if (!roomId) {
+    throw new Error(`Room ID not found for socket: ${socketId}`);
+  }
+
+  const room = activeRooms.get(roomId);
+  const player = room?.players.get(socketId);
+
+  if (!room || !player) {
+    throw new Error(`Room or Player missing for socket: ${socketId}`);
+  }
+
+  return [room, player];
+}
