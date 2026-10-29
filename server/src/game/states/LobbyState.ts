@@ -1,23 +1,28 @@
 import { Player } from "../../models/Player";
 import { GameRoom } from "../GameRoom";
 import { GameState } from "./GameState";
+import { GamePhase } from "../../models/types";
 import { CluePhaseState } from "./CluePhaseState";
 import { SocketEvent, Role } from "../../models/types";
 
 export class LobbyState extends GameState {
+  constructor() {
+    super();
+    this.gamePhase = GamePhase.LOBBY;
+  }
+
   public handleAction(
     room: GameRoom,
     player: Player,
     event: SocketEvent,
     payload: any
   ): void {
-    // All lobby actions can only be done by host
     if (!player.isHost) {
       return;
     }
-    // TODO: add other action handlers like for toggling categories or changing configuration.
+    // TODO (Should): add other action handlers like for toggling categories or changing configuration.
 
-    if (payload.action == SocketEvent.START_GAME) {
+    if (event == SocketEvent.START_GAME) {
       // TODO: read payload.category and validate it (make sure it is in GameRoom.categoryPool)
       this.transitionNext(room);
     }
