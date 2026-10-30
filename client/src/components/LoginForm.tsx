@@ -9,8 +9,8 @@ type Screen = "home" | "join" | "host";
 
 export const LoginForm: React.FC = () => {
   const [screen, setScreen] = useState<Screen>("home");
-  // const [username, setUsername] = useState("");
-  // const [roomCode, setRoomCode] = useState("");
+  const [username, setUsername] = useState("");
+  const [roomCode, setRoomCode] = useState("");
 
   return (
     <main className="game-background flex min-h-screen items-center justify-center px-5 py-10 text-white">
@@ -52,6 +52,83 @@ export const LoginForm: React.FC = () => {
             </div>
           </>
        )}
+
+        {screen === "join" && (
+          <form
+            className="mx-auto max-w-md space-y-5 rounded-2xl border border-white/20 bg-white/10 p-6 text-left backdrop-blur-md sm:p-8"
+            onSubmit={(event) => {
+              event.preventDefault();
+              alert("The join form is ready for backend integration!");
+            }}
+          >
+            <h2 className="text-center text-3xl font-bold">
+              Join a Room
+            </h2>
+
+            <label className="block space-y-2">
+              <span className="text-sm text-slate-200">Username</span>
+              <input
+                required
+                maxLength={20}
+                value={username}
+                onChange={(event) => setUsername(event.target.value)}
+                placeholder="Enter your username"
+                className="w-full rounded-lg border border-white/20 bg-slate-950/60 px-4 py-3 text-white placeholder:text-slate-400 focus:outline-2 focus:outline-cyan-300"
+              />
+            </label>
+
+            <label className="block space-y-2">
+              <span className="text-sm text-slate-200">Room Code</span>
+              <input
+                required
+                minLength={6}
+                maxLength={6}
+                value={roomCode}
+                onChange={(event) =>
+                  setRoomCode(
+                    event.target.value
+                      .toUpperCase()
+                      .slice(0, 6)
+                  )
+                }
+                placeholder="Enter 6-character code"
+                className="w-full rounded-lg border border-white/20 bg-slate-950/60 px-4 py-3 uppercase tracking-widest text-white placeholder:normal-case placeholder:tracking-normal focus:outline-2 focus:outline-cyan-300"
+              />
+            </label>
+
+            <button
+              type="submit"
+              className="w-full rounded-lg bg-cyan-300 px-5 py-3 font-bold text-slate-950 transition hover:bg-cyan-200"
+            >
+              Continue
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setScreen("home")}
+              className="w-full py-2 text-sm text-slate-300 hover:text-white"
+            >
+              Back to Home
+            </button>
+          </form>
+        )}
+
+        {screen === "host" && (
+          <div className="mx-auto max-w-md space-y-5 rounded-2xl border border-white/20 bg-white/10 p-8 backdrop-blur-md">
+            <h2 className="text-3xl font-bold">Host a Room</h2>
+            <p className="text-slate-200">
+              Your room setup screen will go here.
+            </p>
+            <button
+              type="button"
+              onClick={() => setScreen("home")}
+              className="w-full rounded-lg border border-white/30 px-5 py-3 font-bold hover:bg-white/10"
+            >
+              Back to Home
+            </button>
+          </div>
+        )}
+
       </section>
     </main>
   );
