@@ -5,7 +5,7 @@
 
 import React, { useState } from "react";
 // import { socket } from "../services/socket";
-type Screen = "home" | "join" | "host";
+type Screen = "home" | "join" | "host"; //the allowed screen values
 
 export const LoginForm: React.FC = () => {
   const [screen, setScreen] = useState<Screen>("home");
@@ -13,13 +13,14 @@ export const LoginForm: React.FC = () => {
   const [roomCode, setRoomCode] = useState("");
 
   return (
+    //
     <main className="game-background flex min-h-screen items-center justify-center px-5 py-10 text-white">
       <section className="w-full max-w-xl text-center">
         <p className="mb-8 text-sm font-bold tracking-[0.3em] text-cyan-200">
           CHAMELEON PROTOCOL
         </p>
 
-        {screen == "home" && (
+        {screen == "home" && ( //home or landing screen
           <>
             <h1 className="game-title mb-5 text-5xl font-black leading-tight sm:text-7xl">
               Chameleon
@@ -53,19 +54,19 @@ export const LoginForm: React.FC = () => {
           </>
        )}
 
-        {screen === "join" && (
+        {screen === "join" && ( //join a room screen
           <form
             className="mx-auto max-w-md space-y-5 rounded-2xl border border-white/20 bg-white/10 p-6 text-left backdrop-blur-md sm:p-8"
             onSubmit={(event) => {
-              event.preventDefault();
-              alert("The join form is ready for backend integration!");
+              event.preventDefault(); // stops the browser default reload or page navigation
+              alert("The join form is ready for backend integration"); // will remove with backend integration
             }}
           >
             <h2 className="text-center text-3xl font-bold">
-              Join a Room
+              Join a Room !
             </h2>
-
-            <label className="block space-y-2">
+          
+            <label className="block space-y-2"> 
               <span className="text-sm text-slate-200">Username</span>
               <input
                 required
@@ -73,7 +74,8 @@ export const LoginForm: React.FC = () => {
                 value={username}
                 onChange={(event) => setUsername(event.target.value)}
                 placeholder="Enter your username"
-                className="w-full rounded-lg border border-white/20 bg-slate-950/60 px-4 py-3 text-white placeholder:text-slate-400 focus:outline-2 focus:outline-cyan-300"
+                className="w-full rounded-lg border border-white/20 bg-slate-950/60 px-4 py-3 
+                text-white placeholder:text-slate-400 focus:outline-2 focus:outline-purple-300"
               />
             </label>
 
@@ -84,21 +86,17 @@ export const LoginForm: React.FC = () => {
                 minLength={6}
                 maxLength={6}
                 value={roomCode}
-                onChange={(event) =>
-                  setRoomCode(
-                    event.target.value
-                      .toUpperCase()
-                      .slice(0, 6)
-                  )
-                }
+                onChange={(event) => setRoomCode(event.target.value.toUpperCase().slice(0, 6))}
                 placeholder="Enter 6-character code"
-                className="w-full rounded-lg border border-white/20 bg-slate-950/60 px-4 py-3 uppercase tracking-widest text-white placeholder:normal-case placeholder:tracking-normal focus:outline-2 focus:outline-cyan-300"
+                className="w-full rounded-lg border border-white/20 bg-slate-950/60 px-4 py-3 uppercase tracking-widest 
+                text-white placeholder:normal-case placeholder:tracking-normal focus:outline-2 focus:outline-green-300"
               />
             </label>
 
             <button
               type="submit"
-              className="w-full rounded-lg bg-cyan-300 px-5 py-3 font-bold text-slate-950 transition hover:bg-cyan-200"
+              // function to backend to change to lobby state
+              className="w-full rounded-lg bg-cyan-300 px-5 py-3 font-bold text-slate-950 transition hover:bg-cyan-100"
             >
               Continue
             </button>
@@ -113,22 +111,47 @@ export const LoginForm: React.FC = () => {
           </form>
         )}
 
-        {screen === "host" && (
-          <div className="mx-auto max-w-md space-y-5 rounded-2xl border border-white/20 bg-white/10 p-8 backdrop-blur-md">
-            <h2 className="text-3xl font-bold">Host a Room</h2>
-            <p className="text-slate-200">
-              Your room setup screen will go here.
-            </p>
+        {screen === "host" && ( //host a room screen
+          <form
+            className="mx-auto max-w-md space-y-5 rounded-2xl border border-white/20 bg-white/10 p-6 text-left backdrop-blur-md sm:p-8"
+            onSubmit={(event) => {
+              event.preventDefault(); // stops the browser default reload or page navigation
+              alert("The host join form is ready for backend integration"); // will remove with backend integration
+            }}
+          >
+            <h2 className="text-center text-3xl font-bold">
+              Host a Room !
+            </h2>
+          
+            <label className="block space-y-2"> 
+              <span className="text-sm text-slate-200">Username</span>
+              <input
+                required
+                maxLength={20}
+                value={username}
+                onChange={(event) => setUsername(event.target.value)}
+                placeholder="Enter your username"
+                className="w-full rounded-lg border border-white/20 bg-slate-950/60 px-4 py-3 
+                text-white placeholder:text-slate-400 focus:outline-2 focus:outline-purple-300"
+              />
+            </label>
             <button
-              type="button"
-              onClick={() => setScreen("home")}
-              className="w-full rounded-lg border border-white/30 px-5 py-3 font-bold hover:bg-white/10"
+              type="submit"
+              // function to backend to change to host lobby state
+              className="w-full rounded-lg bg-cyan-300 px-5 py-3 font-bold text-slate-950 transition hover:bg-cyan-100"
             >
-              Back to Home
+              Continue
             </button>
-          </div>
-        )}
 
+            <button
+                type="button"
+                onClick={() => setScreen("home")}
+                className="w-full py-2 text-sm text-slate-300 hover:text-white"
+              >
+                Back to Home
+            </button>
+          </form>
+        )}
       </section>
     </main>
   );
