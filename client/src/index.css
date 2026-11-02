@@ -33,3 +33,16 @@ body {
     ),
     #030712;
 }
+
+.game-title {
+  background: linear-gradient(
+    90deg,
+    #4ade80,
+    #bae6fd,
+    #a78bfa
+  );
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 18px rgba(96, 165, 250, 0.25));
+}
