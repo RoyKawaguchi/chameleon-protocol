@@ -105,4 +105,21 @@ export class GameRoom {
   public sendPrivate(targetId: string, payload: any): void {
     this.emit(targetId, SocketEvent.ROLE_ASSIGNED, payload);
   }
+
+  /**
+   * @Author Alex
+   * 
+   * Returns true if the room is able to be joined by an incoming player.
+   * 
+   * TODO:
+   * 
+   * This function doesn't do anything right now but if a player limit is added to the room config options in the future, or other factors like that, this function can
+   * check for it.
+   * 
+   * @returns Boolean representing if the room is able to be joined by an incoming player
+   */
+  public canJoin(): Boolean
+  {
+    return true;
+  }
 }
