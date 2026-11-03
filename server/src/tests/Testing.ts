@@ -17,7 +17,14 @@ export class Testing
 {
     public static readonly numTests = 10; // Number of times tests will be run (For ones that test randomly generated functions)
 
-    // Override
+    /**
+     * @Author Alex
+     * 
+     * Creates a GameRoom object with a randomized ID populated with dummy player objects that have randomized socketIDs
+     * 
+     * @param numPlayers 
+     * @returns A GameRoom Object initialized with dummy players equal to the numPlayers param
+     */
     public static createDummyRoom(numPlayers : number) : GameRoom
     {
         const roomId = Math.floor(Math.random() * 9999); // Generate random room ID (Just number between 0 and 9999)
@@ -34,6 +41,13 @@ export class Testing
         return newRoom;
     }
 
+    /**
+     * @Author Alex
+     * 
+     *  Print function for debugging. Prints most relative info of the argument room object and info about the players in it.
+     * 
+     * @param room 
+     */
     public static printRoomInfo(room: GameRoom) : void
     {
         console.log("Room ID: " + room.roomId);
