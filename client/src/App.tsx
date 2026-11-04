@@ -7,7 +7,7 @@
 
 import React, { useState, useEffect } from "react";
 import { socket } from "./services/socket";
-import { GamePhase } from "./models/types";
+import { GamePhase, SocketEvent } from "./models/types";
 
 import LoginForm from "./components/LoginForm";
 import LobbyView from "./components/LobbyView";
@@ -17,23 +17,46 @@ import VotingView from "./components/VotingView";
 import GameOverView from "./components/GameOverView";
 
 export const App: React.FC = () => {
-  const [gameState, setGameState] = useState<any>(null);
+  const [gameState, setGameState] = useState<GamePhase>();
+
+
+  /**
+   * @Author Alex
+   * 
+   * Function that is passed LoginForm.tsx. Recieves arguments from the room hosting form and sends a CREATE_ROOM socket event to the server.
+   * 
+   * @param username Username recieved as a string
+   */
+  const createRoom = (username : string) => 
+  {
+    // Emit a socket event to the server to create a room
+    socket.emit(SocketEvent.CREATE_ROOM, {username});
+  }
+
+  const joinRoom = (username : string, roomCode : string) =>
+  {
+    socket.emit(SocketEvent.JOIN_ROOM, {username, roomCode});
+  }
 
   useEffect(() => {
-    socket.on("room_updated", (updatedState) => {
+
+    socket.on(SocketEvent.ROOM_UPDATED, (updatedState) => 
+    {
       setGameState(updatedState);
     });
 
-    return () => {
-      socket.off("room_updated");
+    return () => 
+    {
+      socket.off(SocketEvent.ROOM_UPDATED);
     };
   }, []);
 
   if (!gameState) {
-    return <LoginForm />;
+    return <LoginForm createRoom={createRoom} joinRoom={joinRoom} />;
   }
 
-  switch (gameState.gamePhase) {
+  switch (gameState) 
+  {
     case GamePhase.LOBBY:
       return <LobbyView />;
     case GamePhase.CLUE_PHASE:
@@ -45,7 +68,7 @@ export const App: React.FC = () => {
     case GamePhase.GAME_OVER:
       return <GameOverView />;
     default:
-      return <LoginForm />;
+      return <LoginForm createRoom={createRoom} joinRoom={joinRoom}/>;
   }
 };
 
