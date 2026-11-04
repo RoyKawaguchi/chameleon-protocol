@@ -17,8 +17,9 @@ export interface CategoryPool {
 
 export interface GameConfig {
   clueRounds: number;
-  discussionTimeSeconds: number;
-  chameleonLastResortEnabled: boolean;
+  // discussionTimeSeconds: number;
+  // chameleonLastResortEnabled: boolean;
+  // ^^commented out for now until we add the functionality
 }
 
 export enum SocketEvent {
@@ -34,4 +35,20 @@ export enum SocketEvent {
   // Server -> Client Broadcasts
   ROOM_UPDATED = "room_updated",
   ERROR_MESSAGE = "error_message",
+}
+
+//////////////////////////////
+export interface PlayerDto {
+  socketId: string;
+  username: string;
+  isHost: Boolean;
+  score: number;
+}
+
+export interface RoomStatePayload {
+  roomID: string;
+  gamePhase: GamePhase;
+  players: PlayerDto[];
+  config: GameConfig;
+  activeCategory: string | null;
 }
