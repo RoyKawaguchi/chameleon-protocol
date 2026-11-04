@@ -69,6 +69,10 @@ io.on("connection", (socket) => {
     // Add room to registry
     activeRooms.set(roomId, room);
 
+    console.log(
+      `[Room Created] RoomID: ${roomId}, Host: ${username}, Socket: ${socket.id}`
+    );
+
     // Broadcast room state so the host client updates to the lobby view with member list
     room.broadcastState();
   });
@@ -98,6 +102,10 @@ io.on("connection", (socket) => {
     room.addPlayer(socket.id, username);
     socketToRoomMap.set(socket.id, room.roomId);
     socket.join(room.roomId);
+
+    console.log(
+      `[Room Joined] RoomID: ${room.roomId}, User: ${username}, Socket: ${socket.id}`
+    );
 
     // Broadcast updated room state to ALL players in the room (updates member list for everyone)
     room.broadcastState();
@@ -172,7 +180,7 @@ io.on("connection", (socket) => {
 
 const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => {
-  console.log("[Server] Chameleon Protocol server running on port ${PORT}");
+  console.log(`Chameleon Protocol server running on port ${PORT}`);
 });
 
 function getRoomAndPlayer(socketId: string): [GameRoom, Player] {
