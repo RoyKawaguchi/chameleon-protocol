@@ -7,7 +7,7 @@
 
 import React, { useState, useEffect } from "react";
 import { socket } from "./services/socket";
-import { GamePhase } from "./models/types";
+import { GamePhase , /*PlayerDto,*/ RoomStatePayload } from "./models/types";
 
 import LoginForm from "./components/LoginForm";
 import LobbyView from "./components/LobbyView";
@@ -31,11 +31,20 @@ export const App: React.FC = () => {
 
   if (!gameState) {
     return <LoginForm />;
+    //TEMPORARY LOBBY PREVIEW
+    // return ( 
+    //   <LobbyView
+    //     room={previewRoom}
+    //     isHost={false}
+    //     onStartGame={() => console.log("Start game clicked")}
+    //     onUpdateConfig={(config) => console.log(config)}
+    //   />
+    // );
   }
 
   switch (gameState.gamePhase) {
     case GamePhase.LOBBY:
-      return <LobbyView />;
+      return <LobbyView />; //ik theres an error is because the LobbyViewProps properties are missing
     case GamePhase.CLUE_PHASE:
       return <CluePhaseView />;
     case GamePhase.DISCUSSION:
@@ -47,6 +56,45 @@ export const App: React.FC = () => {
     default:
       return <LoginForm />;
   }
+};
+
+//To display preview of room without actual room creation. Can delete when connection to backend is made//
+const previewRoom: RoomStatePayload = {
+  roomID: "ABC123",
+  gamePhase: GamePhase.LOBBY,
+
+  players: [
+    {
+      socketId: "player1",
+      username: "Devona",
+      isHost: true,
+      score: 0,
+    },
+    {
+      socketId: "player2",
+      username: "Alex",
+      isHost: false,
+      score: 0,
+    },
+    {
+      socketId: "player3",
+      username: "Roy",
+      isHost: false,
+      score: 0,
+    },
+    {
+      socketId: "player4",
+      username: "Taylor",
+      isHost: false,
+      score: 0,
+    },
+  ],
+
+  config: {
+    clueRounds: 1,
+  },
+
+  activeCategory: null,
 };
 
 export default App;
