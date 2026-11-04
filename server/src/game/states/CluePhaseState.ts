@@ -22,7 +22,8 @@ export class CluePhaseState extends GameState {
     this.currentTurnHolder = playerOrder[0];
   }
 
-  public onEnter?(room: GameRoom): void {
+  public onEnter?(room: GameRoom): void 
+  {
     // TODO: emit a system message
     room.broadcastState();
   }
@@ -33,23 +34,27 @@ export class CluePhaseState extends GameState {
     event: SocketEvent,
     payload: any
   ): void {
-    if (event != SocketEvent.SUBMIT_CLUE) {
+    if (event != SocketEvent.SUBMIT_CLUE) 
+    {
       // TODO: throw error
       return;
     }
-    try {
-      this.validateRound(player, payload);
 
+    try 
+    {
       const clueMsg = new ClueMessage(
         player,
         payload.clueText,
         this.currentRound
       );
 
+      this.validateRound(player, clueMsg);
+
       this.submittedClues.push(clueMsg);
 
-      // ---TEMPORARY---
-      if (this.submittedClues.length >= 2) {
+      // Transition to next state if the clue count is equal to the expected number for the round
+      if (this.validateClueAmount(room)) 
+      {
         this.transitionNext(room);
       }
 
@@ -60,16 +65,20 @@ export class CluePhaseState extends GameState {
       //
       // If all configured clue rounds are complete,
       // transition to DiscussionState.
-    } catch (error: unknown) {
+    } 
+
+    catch (error: unknown) 
+    {
       // TODO: Emit a validation error to this player's socket.
     }
   }
 
-  private validateRound(player: Player, payload: object): void {
+  private validateRound(player: Player, clueMsg: ClueMessage): Boolean 
+  {
     // TODO:
-    // - Validate the clue text.
-    // - Ensure the clue phase has not already completed.
-    // - Ensure the player is supposed to submit a clue next,
+    // - Validate the clue text. ?
+    // - Ensure the clue phase has not already completed. ?
+    // - Ensure the player is supposed to submit a clue next, 
     //   according to playerOrder.
     // - Ensure each player submits exactly once per round.
     // - Compute the expected round from submittedClues and
@@ -88,14 +97,43 @@ export class CluePhaseState extends GameState {
     //
     // Throw an error with an appropriate message if any
     // validation check fails.
+
+    
+
+    return false;
   }
 
-  public transitionNext(room: GameRoom): void {
-    // TODO: Confirm that there is a correct number of clues.
-    // e.g. if players.size == 4 and rounds = 2, there should've been 8 clues.
-    // Then transition to new state
+  private validateClue(payload:object) : Boolean
+  {
+    /*
+      return true if:
+        the clue text is not the secret word
+    */
 
+    return false;
+  }
+
+  public transitionNext(room: GameRoom): void 
+  {
     room.currentState = new DiscussionState();
     room.currentState.onEnter?.(room);
+  }
+
+  /**
+   * @Author Alex
+   * 
+   * Helper method that validates the number of clues submitted in the lobby
+   * 
+   * @param room 
+   * @returns a boolean representing if the number of clues is equal to the expected amount
+   */
+  private validateClueAmount(room: GameRoom) : Boolean
+  {
+    let expectedClues = room.players.size * this.clueRoundLimit; // Amount of players * amount of rounds
+    if (expectedClues != this.submittedClues.length) // Return false if the amount of submitted clues is not exactly equal to the expected amount
+    {
+      return false;
+    }
+    return true; // Return true otherwise
   }
 }

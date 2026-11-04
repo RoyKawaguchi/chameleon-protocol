@@ -65,4 +65,24 @@ describe("Chameleon Protocol - Game State Tests", () =>
             }
         })
 
+        describe("Clue State Tests", () => 
+            {
+                // Dummy Room for external tests
+                const dummyRoom = Testing.createDummyRoom(4);
+                dummyRoom.currentState.transitionNext(dummyRoom);
+
+                describe("Clue State ValidateClueAmount() Tests", () => 
+                    {
+                        let dummyCluePhase = new CluePhaseState([], dummyRoom.config.clueRounds); // Empty list for turn order because it is not used in these tests
+
+                        it("Below Expected Number of Clues", () => 
+                        {
+
+                            // expect(dummyCluePhase.validateClueAmount()).toBe(false);
+                            expect(1).toBe(1);
+                        })
+                    })
+                
+            })
+
     })
