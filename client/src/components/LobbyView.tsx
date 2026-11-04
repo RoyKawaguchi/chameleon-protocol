@@ -1,6 +1,5 @@
 import React, { useState } from "react";
-//import { socket } from "../services/socket";
-import { GameConfig, /*PlayerDto,*/ RoomStatePayload } from "../models/types";
+import { GameConfig, RoomStatePayload } from "../models/types";
 
 interface LobbyViewProps {
   room: RoomStatePayload;
@@ -15,9 +14,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
   onStartGame,
   onUpdateConfig,
 }) => {
-  const [clueRounds, setClueRounds] = useState(
-    room.config.clueRounds
-  );
+  const [clueRounds, setClueRounds] = useState(room.config.clueRounds);
 
   const handleRoundChange = (rounds: number) => {
     setClueRounds(rounds);
@@ -30,35 +27,26 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
 
   return (
     <main className="game-background min-h-screen px-5 py-10 text-white">
-
       <div className="mx-auto max-w-5xl">
-
         {/* HEADER */}
         <header className="mb-8 text-center">
           <p className="text-sm tracking-[0.3em] text-cyan-200">
             CHAMELEON PROTOCOL
           </p>
 
-          <h1 className="game-title mt-3 text-5xl font-black">
-            GAME LOBBY
-          </h1>
+          <h1 className="game-title mt-3 text-5xl font-black">GAME LOBBY</h1>
 
           <p className="mt-3 text-2xl text-slate-300">
-            Room Code: {room.roomID}
+            Room Code: {room.roomId}
           </p>
         </header>
-
 
         {/* HOST LOBBY */}
         {isHost && (
           <div className="grid gap-6 md:grid-cols-2">
-
             {/* PLAYER LIST */}
             <section className="rounded-2xl border border-white/20 bg-white/10 p-6">
-
-              <h2 className="mb-4 text-2xl font-bold">
-                Players
-              </h2>
+              <h2 className="mb-4 text-2xl font-bold">Players</h2>
 
               <div className="space-y-3">
                 {room.players.map((player) => (
@@ -69,9 +57,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
                     <span>{player.username}</span>
 
                     {player.isHost && (
-                      <span className="text-sm text-green-300">
-                        HOST
-                      </span>
+                      <span className="text-sm text-green-300">HOST</span>
                     )}
                   </div>
                 ))}
@@ -80,22 +66,15 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
               <p className="mt-5 text-sm text-slate-400">
                 {room.players.length}/8 Players
               </p>
-
             </section>
-
 
             {/* GAME CONFIG */}
             <section className="rounded-2xl border border-white/20 bg-white/10 p-6">
-
-              <h2 className="mb-5 text-2xl font-bold">
-                Game Settings
-              </h2>
+              <h2 className="mb-5 text-2xl font-bold">Game Settings</h2>
 
               {/* CLUE ROUNDS */}
               <div className="mb-6">
-                <h3 className="mb-3 font-semibold">
-                  Clue Rounds
-                </h3>
+                <h3 className="mb-3 font-semibold">Clue Rounds</h3>
 
                 <div className="grid grid-cols-2 gap-3">
                   {[1, 2].map((round) => (
@@ -115,42 +94,27 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
                 </div>
               </div>
 
-              {/* more settings will be added here */}
-
               <p className="text-sm text-slate-400">
                 More game settings coming soon.
               </p>
-
             </section>
-
           </div>
         )}
-
 
         {/* PLAYER LOBBY */}
         {!isHost && (
           <div className="mx-auto max-w-2xl">
+            <h2 className="game-title text-6xl font-bold text-center">
+              Waiting for Host...
+            </h2>
 
-            {/* WAITING MESSAGE */}
-            {/* <section className="mb-8 rounded-2xl border border-purple-300/30 bg-purple-300/10 p-8 text-center"> */}
-
-              <h2 className="game-title text-8xl font-bold text-center">
-                Waiting for Host...
-              </h2>
-
-              <p className="mt-3 text-center text-slate-300">
-                The host will start the game when everyone is ready.
-              </p>
-
-            {/* </section> */}
-
+            <p className="mt-3 text-center text-slate-300">
+              The host will start the game when everyone is ready.
+            </p>
 
             {/* PLAYER LIST */}
-            <section className="rounded-2xl mt-4 border border-white/20 bg-white/10 p-6">
-
-              <h2 className="mb-4 text-2xl font-bold">
-                Players in Room
-              </h2>
+            <section className="rounded-2xl mt-8 border border-white/20 bg-white/10 p-6">
+              <h2 className="mb-4 text-2xl font-bold">Players in Room</h2>
 
               <div className="space-y-3">
                 {room.players.map((player) => (
@@ -161,9 +125,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
                     <span>{player.username}</span>
 
                     {player.isHost && (
-                      <span className="text-sm text-cyan-300">
-                        HOST
-                      </span>
+                      <span className="text-sm text-cyan-300">HOST</span>
                     )}
                   </div>
                 ))}
@@ -172,17 +134,13 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
               <p className="mt-5 text-sm text-slate-400">
                 {room.players.length}/8 Players
               </p>
-
             </section>
-
           </div>
         )}
-
 
         {/* HOST START BUTTON */}
         {isHost && (
           <div className="mt-8 text-center">
-
             <p className="mb-4 text-sm text-slate-300">
               {room.players.length < 4
                 ? `Waiting for ${4 - room.players.length} more player(s)...`
@@ -197,10 +155,8 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
             >
               START GAME
             </button>
-
           </div>
         )}
-
       </div>
     </main>
   );

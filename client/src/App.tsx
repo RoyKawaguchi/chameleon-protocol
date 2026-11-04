@@ -7,11 +7,7 @@
 
 import React, { useState, useEffect } from "react";
 import { socket } from "./services/socket";
-import {
-  GamePhase,
-  /*PlayerDto,*/ RoomStatePayload,
-  SocketEvent,
-} from "./models/types";
+import { GamePhase, RoomStatePayload, SocketEvent } from "./models/types";
 
 import LoginForm from "./components/LoginForm";
 import LobbyView from "./components/LobbyView";
@@ -21,12 +17,14 @@ import VotingView from "./components/VotingView";
 import GameOverView from "./components/GameOverView";
 
 export const App: React.FC = () => {
-  const [gameState, setGameState] = useState<GamePhase>();
+  const [roomState, setRoomState] = useState<RoomStatePayload | null>(null);
 
   /**
    * @Author Alex
    *
-   * Function that is passed LoginForm.tsx. Recieves arguments from the room hosting form and sends a CREATE_ROOM socket event to the server.
+   * Function that is passed LoginForm.tsx.
+   * Recieves arguments from the room hosting form and
+   * sends a CREATE_ROOM socket event to the server.
    *
    * @param username Username recieved as a string
    */
@@ -39,32 +37,56 @@ export const App: React.FC = () => {
     socket.emit(SocketEvent.JOIN_ROOM, { username, roomCode });
   };
 
+  const startGame = () => {
+    socket.emit(SocketEvent.START_GAME);
+  };
+
+  const updateConfig = (config: any) => {
+    // TODO: emit CONFIG event
+  };
+
   useEffect(() => {
-    socket.on(SocketEvent.ROOM_UPDATED, (updatedState) => {
-      setGameState(updatedState);
+    socket.on(
+      SocketEvent.ROOM_UPDATED,
+      (updatedPayload: RoomStatePayload | undefined) => {
+        if (!updatedPayload) {
+          // Room closed or returned to home
+          setRoomState(null);
+          return;
+        }
+        setRoomState(updatedPayload);
+      }
+    );
+
+    socket.on(SocketEvent.ERROR_MESSAGE, (err: { message: string }) => {
+      alert(err.message);
     });
 
     return () => {
       socket.off(SocketEvent.ROOM_UPDATED);
+      socket.off(SocketEvent.ERROR_MESSAGE);
     };
   }, []);
 
-  if (!gameState) {
-    return <LoginForm />;
-    //TEMPORARY LOBBY PREVIEW
-    // return (
-    //   <LobbyView
-    //     room={previewRoom}
-    //     isHost={false}
-    //     onStartGame={() => console.log("Start game clicked")}
-    //     onUpdateConfig={(config) => console.log(config)}
-    //   />
-    // );
+  // If no active room state, show login / landing screen
+  if (!roomState || !roomState.gamePhase) {
+    return <LoginForm createRoom={createRoom} joinRoom={joinRoom} />;
   }
 
-  switch (gameState) {
+  // Determine if local player is host
+  const localPlayer = roomState.players.find((p) => p.socketId === socket.id);
+  const isHost = localPlayer ? localPlayer.isHost : false;
+
+  switch (roomState.gamePhase) {
     case GamePhase.LOBBY:
-      return <LobbyView />; //ik theres an error is because the LobbyViewProps properties are missing
+      return (
+        <LobbyView
+          room={roomState}
+          isHost={isHost}
+          onStartGame={startGame}
+          onUpdateConfig={updateConfig}
+        />
+      );
     case GamePhase.CLUE_PHASE:
       return <CluePhaseView />;
     case GamePhase.DISCUSSION:
@@ -76,45 +98,6 @@ export const App: React.FC = () => {
     default:
       return <LoginForm createRoom={createRoom} joinRoom={joinRoom} />;
   }
-};
-
-//To display preview of room without actual room creation. Can delete when connection to backend is made//
-const previewRoom: RoomStatePayload = {
-  roomID: "ABC123",
-  gamePhase: GamePhase.LOBBY,
-
-  players: [
-    {
-      socketId: "player1",
-      username: "Devona",
-      isHost: true,
-      score: 0,
-    },
-    {
-      socketId: "player2",
-      username: "Alex",
-      isHost: false,
-      score: 0,
-    },
-    {
-      socketId: "player3",
-      username: "Roy",
-      isHost: false,
-      score: 0,
-    },
-    {
-      socketId: "player4",
-      username: "Taylor",
-      isHost: false,
-      score: 0,
-    },
-  ],
-
-  config: {
-    clueRounds: 1,
-  },
-
-  activeCategory: null,
 };
 
 export default App;

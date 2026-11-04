@@ -12,14 +12,12 @@ export enum GamePhase {
 }
 
 export interface CategoryPool {
-  [categoryName: string]: string[];
+  categoryName: string;
+  categories: string[];
 }
 
 export interface GameConfig {
   clueRounds: number;
-  // discussionTimeSeconds: number;
-  // chameleonLastResortEnabled: boolean;
-  // ^^commented out for now until we add the functionality
 }
 
 export enum SocketEvent {
@@ -34,19 +32,28 @@ export enum SocketEvent {
 
   // Server -> Client Broadcasts
   ROOM_UPDATED = "room_updated",
+  ROLE_ASSIGNED = "role_assigned",
   ERROR_MESSAGE = "error_message",
 }
 
-//////////////////////////////
+export interface CreateRoomPayload {
+  username: string;
+}
+
+export interface JoinRoomPayload {
+  username: string;
+  roomCode: string;
+}
+
 export interface PlayerDto {
   socketId: string;
   username: string;
-  isHost: Boolean;
+  isHost: boolean;
   score: number;
 }
 
 export interface RoomStatePayload {
-  roomID: string;
+  roomId: string;
   gamePhase: GamePhase;
   players: PlayerDto[];
   config: GameConfig;
