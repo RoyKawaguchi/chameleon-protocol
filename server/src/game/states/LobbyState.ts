@@ -41,6 +41,33 @@ export class LobbyState extends GameState {
     this.createPlayerOrder(room);
     let playerOrder = this.createPlayerOrder(room);
 
+    room.broadcastState();
+    
+    for(let [socketID, player] of room.players)
+    {
+      // Case that player is Chameleon, send updated role info and omit secret word
+      let privatePayload;
+      if(player.role == Role.CHAMELEON)
+      {
+        privatePayload = 
+        {
+          role: player.role,
+          secretWord: null
+        }
+      }
+      // Case that player is Agent, send secret word and omit roles
+      else
+      {
+         privatePayload = 
+         {
+          role: player.role,
+          secretWord: room.secretWord
+         }
+      }
+
+      room.sendPrivate(socketID, privatePayload);
+    }
+
     room.currentState = new CluePhaseState(playerOrder, room.config.clueRounds);
     room.currentState.onEnter?.(room);
   }

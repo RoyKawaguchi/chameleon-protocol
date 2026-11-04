@@ -2,12 +2,17 @@
  * - Enter a display name.
  * - Create a new room as Host OR enter a 6-character room code to join an existing game.
  */
-
+import { socket } from "../services/socket";
 import React, { useState } from "react";
-// import { socket } from "../services/socket";
 type Screen = "home" | "join" | "host"; //the allowed screen values
 
-export const LoginForm: React.FC = () => {
+interface LoginFormProps
+{
+  createRoom: (username: string) => void;
+  joinRoom: (username: string, roomCode: string) => void
+}
+
+export const LoginForm: React.FC<LoginFormProps> = ({createRoom, joinRoom}) => {
   const [screen, setScreen] = useState<Screen>("home");
   const [username, setUsername] = useState("");
   const [roomCode, setRoomCode] = useState("");
@@ -59,7 +64,7 @@ export const LoginForm: React.FC = () => {
             className="mx-auto max-w-md space-y-5 rounded-2xl border border-white/20 bg-white/10 p-6 text-left backdrop-blur-md sm:p-8"
             onSubmit={(event) => {
               event.preventDefault(); // stops the browser default reload or page navigation
-              alert("The join form is ready for backend integration"); // will remove with backend integration
+              joinRoom(username, roomCode);
             }}
           >
             <h2 className="text-center text-3xl font-bold">
@@ -116,7 +121,7 @@ export const LoginForm: React.FC = () => {
             className="mx-auto max-w-md space-y-5 rounded-2xl border border-white/20 bg-white/10 p-6 text-left backdrop-blur-md sm:p-8"
             onSubmit={(event) => {
               event.preventDefault(); // stops the browser default reload or page navigation
-              alert("The host join form is ready for backend integration"); // will remove with backend integration
+              createRoom(username);
             }}
           >
             <h2 className="text-center text-3xl font-bold">
