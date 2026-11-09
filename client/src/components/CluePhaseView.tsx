@@ -42,111 +42,106 @@ export const CluePhaseView: React.FC<CluePhaseViewProps> = ({
 
   return (
     <main>
-      <div>
-        <header>
-          <p>CHAMELEON PROTOCOL</p>
-          <h1>CLUE PHASE</h1>
-          <p>
-            Round {room.currentRound || 1} of {room.config.clueRounds}
-          </p>
-        </header>
+      <header>
+        <p>CHAMELEON PROTOCOL</p>
+        <h1>CLUE PHASE</h1>
+        <p>
+          Round {room.currentRound || 1} of {room.config.clueRounds}
+        </p>
+      </header>
 
-        <section>
-          <p>Active Category</p>
-          <h2>{room.activeCategory || "Unknown"}</h2>
+      <hr />
 
+      <section>
+        <p>Active Category</p>
+        <h2>{room.activeCategory || "Unknown"}</h2>
+
+        <hr />
+
+        {role === Role.CHAMELEON ? (
           <div>
-            {role === Role.CHAMELEON ? (
-              <div>
-                <p>You are the Chameleon! </p>
-                <p>
-                  You do not know the secret word. Blend in with a clever clue!
-                </p>
-              </div>
-            ) : (
-              <div>
-                <p>Secret Target Word:</p>
-                <p>{secretWord || "Loading..."}</p>
-              </div>
-            )}
+            <p>You are the Chameleon! 🕵️‍♂️</p>
+            <p>You do not know the secret word. Blend in with a clever clue!</p>
           </div>
-        </section>
-
-        <div>
-          <section>
-            <h3>Turn Order</h3>
-
-            <div>
-              {room.players.map((player) => {
-                const isCurrentTurn =
-                  player.socketId === room.currentTurnHolderSocketId;
-
-                return (
-                  <div key={player.socketId}>
-                    <span>{player.username}</span>
-
-                    {isCurrentTurn && <span>SUBMITTING...</span>}
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-
+        ) : (
           <div>
-            <section>
-              <div>
-                <h3>Submit Your Clue</h3>
-
-                <p>
-                  {isMyTurn
-                    ? "It's your turn! Enter a single-word clue."
-                    : "Waiting for the current player to submit their clue..."}
-                </p>
-              </div>
-
-              {isMyTurn ? (
-                <form onSubmit={handleSubmitClue}>
-                  <input
-                    type="text"
-                    maxLength={25}
-                    value={clueInput}
-                    onChange={(e) => setClueInput(e.target.value)}
-                    placeholder="Enter single word..."
-                    autoFocus
-                  />
-
-                  <button
-                    type="submit"
-                    disabled={!clueInput.trim() || isSubmitting}
-                  >
-                    SUBMIT CLUE
-                  </button>
-                </form>
-              ) : (
-                <div>Input locked until your turn.</div>
-              )}
-            </section>
+            <p>Secret Target Word:</p>
+            <p>{secretWord || "Loading..."}</p>
           </div>
-        </div>
+        )}
+      </section>
 
-        {room.clueMessages && room.clueMessages.length > 0 && (
+      <hr />
+
+      <section>
+        <h3>Turn Order</h3>
+
+        <ul>
+          {room.players.map((player) => {
+            const isCurrentTurn =
+              player.socketId === room.currentTurnHolderSocketId;
+
+            return (
+              <li key={player.socketId}>
+                {player.username}
+                {isCurrentTurn && " — SUBMITTING..."}
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+
+      <hr />
+
+      <section>
+        <h3>Submit Your Clue</h3>
+
+        <p>
+          {isMyTurn
+            ? "It's your turn! Enter a single-word clue."
+            : "Waiting for the current player to submit their clue..."}
+        </p>
+
+        {isMyTurn ? (
+          <form onSubmit={handleSubmitClue}>
+            <input
+              type="text"
+              maxLength={25}
+              value={clueInput}
+              onChange={(e) => setClueInput(e.target.value)}
+              placeholder="Enter single word..."
+              autoFocus
+            />
+
+            <button type="submit" disabled={!clueInput.trim() || isSubmitting}>
+              SUBMIT CLUE
+            </button>
+          </form>
+        ) : (
+          <p>Input locked until your turn.</p>
+        )}
+      </section>
+
+      {room.clueMessages && room.clueMessages.length > 0 && (
+        <>
+          <hr />
+
           <section>
             <h3>Clues Log (Round {room.currentRound || 1})</h3>
 
-            <div>
+            <ul>
               {room.clueMessages.map((msg, idx) => (
-                <div key={idx}>
-                  <span>
+                <li key={idx}>
+                  <p>
                     {msg.sender.username} (R{msg.roundNumber})
-                  </span>
-
-                  <span>"{msg.content}"</span>
-                </div>
+                  </p>
+                  <p>"{msg.content}"</p>
+                </li>
               ))}
-            </div>
+            </ul>
           </section>
-        )}
-      </div>
+        </>
+      )}
     </main>
   );
 };
