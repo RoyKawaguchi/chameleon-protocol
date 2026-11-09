@@ -160,6 +160,25 @@ io.on("connection", (socket) => {
     }
   });
 
+  socket.on(SocketEvent.SEND_CHAT, ({ content }) => {
+    try {
+      const [room, player] = getRoomAndPlayer(socket.id);
+
+      room.currentState.handleAction(room, player, SocketEvent.SEND_CHAT, {
+        content,
+      });
+    } catch (error) {
+      console.error(
+        `[Error] Failed to send chat for socket ${socket.id}:`,
+        error
+      );
+
+      socket.emit(SocketEvent.ERROR_MESSAGE, {
+        message: "SEND_CHAT action failed. Room/player not found.",
+      });
+    }
+  });
+
   socket.on("disconnect", () => {
     console.log(`[Disconnection] User disconnected: ${socket.id}`);
 

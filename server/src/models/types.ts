@@ -56,7 +56,7 @@ export interface SubmitCluePayload {
 }
 
 export interface SendChatPayload {
-  text: string;
+  content: string;
 }
 
 export interface CastVotePayload {
@@ -77,13 +77,17 @@ export interface RoomStatePayload {
     content: string;
     roundNumber: number;
   }>;
+  chatTextMessages?: Array<{
+    sender: { socketId: string; username: string };
+    content: string;
+    timestamp: number;
+  }>;
 }
 
 export interface PlayerDto {
   socketId: string;
   username: string;
   isHost: boolean;
-  isAlive: boolean;
   score: number;
   role?: string; // Only sent privately or revealed at end of game
 }

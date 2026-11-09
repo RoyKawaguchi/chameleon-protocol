@@ -72,7 +72,7 @@ export class CluePhaseState extends GameState {
           return;
         } else {
           this.currentRound++;
-          this.currentTurnHolder = this.playerOrder[0]; // Reset turn back to Alice
+          this.currentTurnHolder = this.playerOrder[0]; // Reset turn back to first
         }
       } else {
         const currentIndex = this.playerOrder.findIndex(

@@ -7,7 +7,13 @@
 
 import { ChatTextMessage, ClueMessage } from "../models/Message";
 import { Player } from "../models/Player";
-import { GameConfig, CategoryPool, SocketEvent } from "../models/types";
+import {
+  GameConfig,
+  CategoryPool,
+  SocketEvent,
+  RoomStatePayload,
+  PlayerDto,
+} from "../models/types";
 import { GameState } from "./states/GameState";
 import { LobbyState } from "./states/LobbyState";
 
@@ -77,22 +83,23 @@ export class GameRoom {
    * Then broadcasts it to all connected clients via Socket.IO. (By calling this.broadcast(event, payload))
    */
   public broadcastState(): void {
-    const publicPlayers = Array.from(this.players.values()).map((player) => ({
-      socketId: player.socketId,
-      username: player.username,
-      isHost: player.isHost,
-      score: player.score,
-    }));
+    const publicPlayers = Array.from(this.players.values()).map(
+      (player): PlayerDto => ({
+        socketId: player.socketId,
+        username: player.username,
+        isHost: player.isHost,
+        score: player.score,
+      })
+    );
 
-    // Check if current state has clue phase properties (duck typing / instanceof check)
     const clueState = this.currentState as any;
 
-    const payload = {
+    const payload: RoomStatePayload = {
       roomId: this.roomId,
       gamePhase: this.currentState.gamePhase,
       players: publicPlayers,
       config: this.config,
-      activeCategory: this.activeCategory,
+      activeCategory: this.activeCategory || null,
       currentRound: clueState.currentRound ?? 1,
       currentTurnHolderSocketId: clueState.currentTurnHolder?.socketId ?? null,
       clueMessages: this.clueMessages.map((msg) => ({
@@ -102,6 +109,14 @@ export class GameRoom {
         },
         content: msg.content,
         roundNumber: msg.roundNumber,
+      })),
+      chatTextMessages: this.chatTextMessages.map((msg) => ({
+        sender: {
+          socketId: msg.sender.socketId,
+          username: msg.sender.username,
+        },
+        content: msg.content,
+        timestamp: msg.timestamp,
       })),
     };
 
