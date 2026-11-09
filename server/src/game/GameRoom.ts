@@ -77,7 +77,6 @@ export class GameRoom {
    * Then broadcasts it to all connected clients via Socket.IO. (By calling this.broadcast(event, payload))
    */
   public broadcastState(): void {
-    // Safe public player array. Does not contain role.
     const publicPlayers = Array.from(this.players.values()).map((player) => ({
       socketId: player.socketId,
       username: player.username,
@@ -85,12 +84,25 @@ export class GameRoom {
       score: player.score,
     }));
 
+    // Check if current state has clue phase properties (duck typing / instanceof check)
+    const clueState = this.currentState as any;
+
     const payload = {
       roomId: this.roomId,
       gamePhase: this.currentState.gamePhase,
-      players: publicPlayers, // Safe public array
+      players: publicPlayers,
       config: this.config,
       activeCategory: this.activeCategory,
+      currentRound: clueState.currentRound ?? 1,
+      currentTurnHolderSocketId: clueState.currentTurnHolder?.socketId ?? null,
+      clueMessages: this.clueMessages.map((msg) => ({
+        sender: {
+          socketId: msg.sender.socketId,
+          username: msg.sender.username,
+        },
+        content: msg.content,
+        roundNumber: msg.roundNumber,
+      })),
     };
 
     this.emit(this.roomId, SocketEvent.ROOM_UPDATED, payload);
@@ -100,26 +112,30 @@ export class GameRoom {
    * Sends payload to one individual socket connection.
    * Use this for private information, such as the player's role.
    * @param targetId
+   * @param eventType
    * @param payload
    */
-  public sendPrivate(targetId: string, payload: any): void {
-    this.emit(targetId, SocketEvent.ROLE_ASSIGNED, payload);
+  public sendPrivate(
+    targetId: string,
+    eventType: SocketEvent,
+    payload: any
+  ): void {
+    this.emit(targetId, eventType, payload);
   }
 
   /**
    * @Author Alex
-   * 
+   *
    * Returns true if the room is able to be joined by an incoming player.
-   * 
+   *
    * TODO:
-   * 
+   *
    * This function doesn't do anything right now but if a player limit is added to the room config options in the future, or other factors like that, this function can
    * check for it.
-   * 
+   *
    * @returns Boolean representing if the room is able to be joined by an incoming player
    */
-  public canJoin(): Boolean
-  {
+  public canJoin(): Boolean {
     return true;
   }
 }

@@ -66,11 +66,17 @@ export interface CastVotePayload {
 // 3. Server -> Client Payload (The Room State Snapshot)
 export interface RoomStatePayload {
   roomId: string;
-  gamePhase: string;
+  gamePhase: GamePhase;
   players: PlayerDto[];
   config: GameConfig;
   activeCategory: string | null;
-  timerEndsAt?: number; // Optional, active during timed phases
+  currentRound?: number;
+  currentTurnHolderSocketId?: string | null;
+  clueMessages?: Array<{
+    sender: { socketId: string; username: string };
+    content: string;
+    roundNumber: number;
+  }>;
 }
 
 export interface PlayerDto {

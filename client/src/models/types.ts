@@ -58,4 +58,11 @@ export interface RoomStatePayload {
   players: PlayerDto[];
   config: GameConfig;
   activeCategory: string | null;
+  currentRound?: number;
+  currentTurnHolderSocketId?: string | null;
+  clueMessages?: Array<{
+    sender: { socketId: string; username: string };
+    content: string;
+    roundNumber: number;
+  }>;
 }

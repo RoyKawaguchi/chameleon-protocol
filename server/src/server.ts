@@ -111,6 +111,32 @@ io.on("connection", (socket) => {
     room.broadcastState();
   });
 
+  socket.on(SocketEvent.START_GAME, () => {
+    try {
+      const [room, player] = getRoomAndPlayer(socket.id);
+
+      // Verify the requesting player is actually the host
+      if (!player.isHost) {
+        room.sendPrivate(socket.id, SocketEvent.ERROR_MESSAGE, {
+          message: "Only the host can start the game.",
+        });
+        return;
+      }
+
+      // Delegate the start action to the current state (LobbyState)
+      room.currentState.handleAction(room, player, SocketEvent.START_GAME, {});
+    } catch (error) {
+      console.error(
+        `[Error] Failed to start game for socket ${socket.id}:`,
+        error
+      );
+
+      socket.emit(SocketEvent.ERROR_MESSAGE, {
+        message: "START_GAME action failed. Room/player not found.",
+      });
+    }
+  });
+
   socket.on(SocketEvent.SUBMIT_CLUE, ({ clueText }) => {
     try {
       const [room, player] = getRoomAndPlayer(socket.id);
