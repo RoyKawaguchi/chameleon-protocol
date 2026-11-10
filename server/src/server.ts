@@ -179,13 +179,48 @@ io.on("connection", (socket) => {
     }
   });
 
+  socket.on(SocketEvent.CAST_VOTE, ({ targetId }) => {
+    try {
+      const [room, player] = getRoomAndPlayer(socket.id);
+      room.currentState.handleAction(room, player, SocketEvent.CAST_VOTE, {
+        targetId,
+      });
+    } catch (error) {
+      console.error(
+        `[Error] Failed to cast vote for socket ${socket.id}:`,
+        error
+      );
+      socket.emit(SocketEvent.ERROR_MESSAGE, {
+        message: "CAST_VOTE action failed.",
+      });
+    }
+  });
+
+  socket.on(SocketEvent.RETURN_TO_LOBBY, () => {
+    try {
+      const [room, player] = getRoomAndPlayer(socket.id);
+      room.currentState.handleAction(
+        room,
+        player,
+        SocketEvent.RETURN_TO_LOBBY,
+        {}
+      );
+    } catch (error) {
+      console.error(
+        `[Error] Failed to return to lobby for socket ${socket.id}:`,
+        error
+      );
+      socket.emit(SocketEvent.ERROR_MESSAGE, {
+        message: "RETURN_TO_LOBBY action failed.",
+      });
+    }
+  });
+
   socket.on("disconnect", () => {
     console.log(`[Disconnection] User disconnected: ${socket.id}`);
 
     const roomId = socketToRoomMap.get(socket.id);
-    if (!roomId) {
-      return;
-    }
+    if (!roomId) return;
 
     socketToRoomMap.delete(socket.id);
 
@@ -193,30 +228,25 @@ io.on("connection", (socket) => {
       const room = activeRooms.get(roomId);
       const player = room?.players.get(socket.id);
 
-      if (!room || !player) {
+      if (!room || !player) return;
+
+      room.removePlayer(socket.id);
+
+      // If room is empty, delete it from active registry
+      if (room.players.size === 0) {
+        activeRooms.delete(roomId);
+        console.log(`[Room Cleaned] Room ${roomId} deleted as it is empty.`);
         return;
       }
 
-      // If the disconnecting player was the host or the only player left, close room
-      if (room.players.size === 1 || player.isHost) {
-        for (let [socketID] of room.players) {
-          if (socketID !== socket.id) {
-            io.to(socketID).emit(SocketEvent.ROOM_UPDATED, undefined);
-            socketToRoomMap.delete(socketID);
-          }
-        }
-        activeRooms.delete(room.roomId);
-        console.log(
-          `[Room Closed] Room ${roomId} closed because host or last player left.`
-        );
-      } else {
-        // Non-host player left: remove player and broadcast updated roster to remaining players
-        room.removePlayer(socket.id);
-        room.broadcastState();
+      // TODO: If the host disconnected, assign host to the next available player
+      if (player.isHost && room.players.size > 0) {
       }
+
+      room.broadcastState();
     } catch (error) {
       console.error(
-        "[Error] Failure to remove user from room on disconnect:",
+        `[Error] Failed handling disconnect for socket ${socket.id}:`,
         error
       );
     }
@@ -228,18 +258,19 @@ server.listen(PORT, () => {
   console.log(`Chameleon Protocol server running on port ${PORT}`);
 });
 
+// Helper function to fetch room and player safely
 function getRoomAndPlayer(socketId: string): [GameRoom, Player] {
   const roomId = socketToRoomMap.get(socketId);
   if (!roomId) {
-    throw new Error(`Room ID not found for socket: ${socketId}`);
+    throw new Error("Socket is not mapped to any room.");
   }
-
   const room = activeRooms.get(roomId);
-  const player = room?.players.get(socketId);
-
-  if (!room || !player) {
-    throw new Error(`Room or Player missing for socket: ${socketId}`);
+  if (!room) {
+    throw new Error("Room not found in active registry.");
   }
-
+  const player = room.players.get(socketId);
+  if (!player) {
+    throw new Error("Player not found in room.");
+  }
   return [room, player];
 }
