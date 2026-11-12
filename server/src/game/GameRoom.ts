@@ -7,7 +7,13 @@
 
 import { ChatTextMessage, ClueMessage } from "../models/Message";
 import { Player } from "../models/Player";
-import { GameConfig, CategoryPool, SocketEvent } from "../models/types";
+import {
+  GameConfig,
+  CategoryPool,
+  SocketEvent,
+  RoomStatePayload,
+  PlayerDto,
+} from "../models/types";
 import { GameState } from "./states/GameState";
 import { LobbyState } from "./states/LobbyState";
 
@@ -77,20 +83,41 @@ export class GameRoom {
    * Then broadcasts it to all connected clients via Socket.IO. (By calling this.broadcast(event, payload))
    */
   public broadcastState(): void {
-    // Safe public player array. Does not contain role.
-    const publicPlayers = Array.from(this.players.values()).map((player) => ({
-      socketId: player.socketId,
-      username: player.username,
-      isHost: player.isHost,
-      score: player.score,
-    }));
+    const publicPlayers = Array.from(this.players.values()).map(
+      (player): PlayerDto => ({
+        socketId: player.socketId,
+        username: player.username,
+        isHost: player.isHost,
+        score: player.score,
+      })
+    );
 
-    const payload = {
+    const clueState = this.currentState as any;
+
+    const payload: RoomStatePayload = {
       roomId: this.roomId,
       gamePhase: this.currentState.gamePhase,
-      players: publicPlayers, // Safe public array
+      players: publicPlayers,
       config: this.config,
-      activeCategory: this.activeCategory,
+      activeCategory: this.activeCategory || null,
+      currentRound: clueState.currentRound ?? 1,
+      currentTurnHolderSocketId: clueState.currentTurnHolder?.socketId ?? null,
+      clueMessages: this.clueMessages.map((msg) => ({
+        sender: {
+          socketId: msg.sender.socketId,
+          username: msg.sender.username,
+        },
+        content: msg.content,
+        roundNumber: msg.roundNumber,
+      })),
+      chatTextMessages: this.chatTextMessages.map((msg) => ({
+        sender: {
+          socketId: msg.sender.socketId,
+          username: msg.sender.username,
+        },
+        content: msg.content,
+        timestamp: msg.timestamp,
+      })),
     };
 
     this.emit(this.roomId, SocketEvent.ROOM_UPDATED, payload);
@@ -100,26 +127,30 @@ export class GameRoom {
    * Sends payload to one individual socket connection.
    * Use this for private information, such as the player's role.
    * @param targetId
+   * @param eventType
    * @param payload
    */
-  public sendPrivate(targetId: string, payload: any): void {
-    this.emit(targetId, SocketEvent.ROLE_ASSIGNED, payload);
+  public sendPrivate(
+    targetId: string,
+    eventType: SocketEvent,
+    payload: any
+  ): void {
+    this.emit(targetId, eventType, payload);
   }
 
   /**
    * @Author Alex
-   * 
+   *
    * Returns true if the room is able to be joined by an incoming player.
-   * 
+   *
    * TODO:
-   * 
+   *
    * This function doesn't do anything right now but if a player limit is added to the room config options in the future, or other factors like that, this function can
    * check for it.
-   * 
+   *
    * @returns Boolean representing if the room is able to be joined by an incoming player
    */
-  public canJoin(): Boolean
-  {
+  public canJoin(): Boolean {
     return true;
   }
 }

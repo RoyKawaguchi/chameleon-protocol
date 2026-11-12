@@ -26,6 +26,7 @@ export class DiscussionState extends GameState {
     // const durationMs = 300 * 1000; // (300 seconds times 1000 ms/s)
     // this.timerEndsAt = Date.now() + durationMs;
     // Broadcast state payload containing timerEndsAt to clients
+    room.broadcastState();
   }
 
   /**
@@ -41,22 +42,38 @@ export class DiscussionState extends GameState {
     payload: any
   ): void {
     if (event == SocketEvent.SEND_CHAT) {
-      // TODO: Broadcast chat text message to room. Something like this?
-      // 1. Add message to GameRoom
-      //   room.chatTextMessages.push(new ChatTextMessage(player, payload.content));
-      // 2. Broadcast the new state
-      //   room.broadcastState();
+      // Validate that chat content exists and is a valid string
+      if (
+        !payload ||
+        typeof payload.content !== "string" ||
+        !payload.content.trim()
+      ) {
+        room.sendPrivate(player.socketId, SocketEvent.ERROR_MESSAGE, {
+          message: "Chat message content cannot be empty.",
+        });
+        return;
+      }
+
+      // 1. Add message to GameRoom chat log
+      const chatMsg = new ChatTextMessage(player, payload.content.trim());
+      room.chatTextMessages.push(chatMsg);
+
+      // 2. Broadcast the new state so all clients update their chat feeds
+      room.broadcastState();
     }
     // TODO (Should): write else-if blocks for cutting discussion short
     // or extending discussion.
     // (Ensure player.isHost is true)
     else {
-      // TODO: throw an error for requesting handleAction with wrong event
+      // Send a private error message to the user if an invalid action is triggered
+      room.sendPrivate(player.socketId, SocketEvent.ERROR_MESSAGE, {
+        message: "Invalid action received during the Discussion Phase.",
+      });
     }
   }
 
   public transitionNext(room: GameRoom): void {
-    // room.currentState = new VotingState();
-    // room.currentState.onEnter?.(room);
+    room.currentState = new VotingState();
+    room.currentState.onEnter?.(room);
   }
 }
