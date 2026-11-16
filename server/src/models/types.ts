@@ -56,7 +56,7 @@ export interface SubmitCluePayload {
 }
 
 export interface SendChatPayload {
-  text: string;
+  content: string;
 }
 
 export interface CastVotePayload {
@@ -66,18 +66,28 @@ export interface CastVotePayload {
 // 3. Server -> Client Payload (The Room State Snapshot)
 export interface RoomStatePayload {
   roomId: string;
-  gamePhase: string;
+  gamePhase: GamePhase;
   players: PlayerDto[];
   config: GameConfig;
   activeCategory: string | null;
-  timerEndsAt?: number; // Optional, active during timed phases
+  currentRound?: number;
+  currentTurnHolderSocketId?: string | null;
+  clueMessages?: Array<{
+    sender: { socketId: string; username: string };
+    content: string;
+    roundNumber: number;
+  }>;
+  chatTextMessages?: Array<{
+    sender: { socketId: string; username: string };
+    content: string;
+    timestamp: number;
+  }>;
 }
 
 export interface PlayerDto {
   socketId: string;
   username: string;
   isHost: boolean;
-  isAlive: boolean;
   score: number;
   role?: string; // Only sent privately or revealed at end of game
 }

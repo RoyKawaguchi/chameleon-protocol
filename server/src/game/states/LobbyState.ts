@@ -38,34 +38,28 @@ export class LobbyState extends GameState {
     }
     this.assignChameleon(room);
     this.selectSecretWord(room);
-    this.createPlayerOrder(room);
     let playerOrder = this.createPlayerOrder(room);
 
     room.broadcastState();
-    
-    for(let [socketID, player] of room.players)
-    {
+
+    for (let [socketID, player] of room.players) {
       // Case that player is Chameleon, send updated role info and omit secret word
       let privatePayload;
-      if(player.role == Role.CHAMELEON)
-      {
-        privatePayload = 
-        {
+      if (player.role == Role.CHAMELEON) {
+        privatePayload = {
           role: player.role,
-          secretWord: null
-        }
+          secretWord: null,
+        };
       }
       // Case that player is Agent, send secret word and omit roles
-      else
-      {
-         privatePayload = 
-         {
+      else {
+        privatePayload = {
           role: player.role,
-          secretWord: room.secretWord
-         }
+          secretWord: room.secretWord,
+        };
       }
 
-      room.sendPrivate(socketID, privatePayload);
+      room.sendPrivate(socketID, SocketEvent.ROLE_ASSIGNED, privatePayload);
     }
 
     room.currentState = new CluePhaseState(playerOrder, room.config.clueRounds);
@@ -74,23 +68,20 @@ export class LobbyState extends GameState {
 
   /**
    * @author Alex
-   * 
+   *
    * Assign one random player in the room the role of Chameleon.
-   * 
-   * @param room 
+   *
+   * @param room
    */
-  private assignChameleon(room: GameRoom) : void
-  {
+  private assignChameleon(room: GameRoom): void {
     // Pick a random number from 0 to the number of players minus 1
     let chameleonIndex = Math.floor(Math.random() * room.players.size);
 
     // Iterate through all players, keeping track of a number i
     let i = 0;
-    for(let [key, value] of room.players)
-    {
+    for (let [key, value] of room.players) {
       // When i is equal to chameleonIndex, assign that player the role.
-      if(i == chameleonIndex)
-      {
+      if (i == chameleonIndex) {
         value.role = Role.CHAMELEON;
         break; // Break out of loop.
       }
@@ -100,56 +91,50 @@ export class LobbyState extends GameState {
 
   /**
    * @author Alex
-   * 
-   * Select a word from the chosen category and assign it to the room's 
+   *
+   * Select a word from the chosen category and assign it to the room's
    * secretWord variable.
-   * 
+   *
    * @param room
    */
-  private selectSecretWord(room: GameRoom) : void
-  {
-      let activeCategory : string[] = [];
-      // Iterate through categories
-      for(let category of room.categoryPool)
-      {
-        // Find the active category and assign it to the local list
-        if(category.categoryName == room.activeCategory)
-        {
-          activeCategory = category.categories;
-        }
+  private selectSecretWord(room: GameRoom): void {
+    let activeCategory: string[] = [];
+    // Iterate through categories
+    for (let category of room.categoryPool) {
+      // Find the active category and assign it to the local list
+      if (category.categoryName == room.activeCategory) {
+        activeCategory = category.categories;
       }
-      // Throw exception if no active category is found
-      if(activeCategory.length == 0)
-      {
-        throw new Error("Game Room's activeCategory is either undefined or does not match a category in categoryPool");
-      }
+    }
+    // Throw exception if no active category is found
+    if (activeCategory.length == 0) {
+      throw new Error(
+        "Game Room's activeCategory is either undefined or does not match a category in categoryPool"
+      );
+    }
 
-      // Pick a random number and assign the word at that index in the category to the room's secret word
-      let randomWordIndex = Math.floor(Math.random() * activeCategory.length);
-      room.secretWord = activeCategory[randomWordIndex]!; // non-null assertion operator
+    // Pick a random number and assign the word at that index in the category to the room's secret word
+    let randomWordIndex = Math.floor(Math.random() * activeCategory.length);
+    room.secretWord = activeCategory[randomWordIndex]!; // non-null assertion operator
   }
-
 
   /**
    * @author Alex
-   * 
+   *
    * Creates a list of players in the lobby in a random order
-   * 
-   * @param room 
-   * @returns 
+   *
+   * @param room
+   * @returns
    */
-  private createPlayerOrder(room: GameRoom) : Player[]
-  {
-    let playerOrder : Player[] = [];
+  private createPlayerOrder(room: GameRoom): Player[] {
+    let playerOrder: Player[] = [];
     // Iterate throguh the map and add all player objects in the room to a list
-    for(let [key, value] of room.players)
-    {
+    for (let [key, value] of room.players) {
       playerOrder.push(value);
     }
 
     // Fisher-Yates Shuffle algorithm
-    for(let i = playerOrder.length - 1; i >= 1; i--)
-    {
+    for (let i = playerOrder.length - 1; i >= 1; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [playerOrder[i], playerOrder[j]] = [playerOrder[j]!, playerOrder[i]!];
     }

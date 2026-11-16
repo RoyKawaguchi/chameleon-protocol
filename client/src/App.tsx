@@ -7,7 +7,7 @@
 
 import React, { useState, useEffect } from "react";
 import { socket } from "./services/socket";
-import { GamePhase, RoomStatePayload, SocketEvent } from "./models/types";
+import { GamePhase, Role, RoomStatePayload, SocketEvent } from "./models/types";
 
 import LoginForm from "./components/LoginForm";
 import LobbyView from "./components/LobbyView";
@@ -18,18 +18,10 @@ import GameOverView from "./components/GameOverView";
 
 export const App: React.FC = () => {
   const [roomState, setRoomState] = useState<RoomStatePayload | null>(null);
+  const [playerRole, setPlayerRole] = useState<Role | null>(null);
+  const [secretWord, setSecretWord] = useState<string | null>(null);
 
-  /**
-   * @Author Alex
-   *
-   * Function that is passed LoginForm.tsx.
-   * Recieves arguments from the room hosting form and
-   * sends a CREATE_ROOM socket event to the server.
-   *
-   * @param username Username recieved as a string
-   */
   const createRoom = (username: string) => {
-    // Emit a socket event to the server to create a room
     socket.emit(SocketEvent.CREATE_ROOM, { username });
   };
 
@@ -50,11 +42,20 @@ export const App: React.FC = () => {
       SocketEvent.ROOM_UPDATED,
       (updatedPayload: RoomStatePayload | undefined) => {
         if (!updatedPayload) {
-          // Room closed or returned to home
           setRoomState(null);
+          setPlayerRole(null);
+          setSecretWord(null);
           return;
         }
         setRoomState(updatedPayload);
+      }
+    );
+
+    socket.on(
+      SocketEvent.ROLE_ASSIGNED,
+      (data: { role: Role; secretWord: string | null }) => {
+        setPlayerRole(data.role);
+        setSecretWord(data.secretWord);
       }
     );
 
@@ -64,16 +65,15 @@ export const App: React.FC = () => {
 
     return () => {
       socket.off(SocketEvent.ROOM_UPDATED);
+      socket.off(SocketEvent.ROLE_ASSIGNED);
       socket.off(SocketEvent.ERROR_MESSAGE);
     };
   }, []);
 
-  // If no active room state, show login / landing screen
   if (!roomState || !roomState.gamePhase) {
     return <LoginForm createRoom={createRoom} joinRoom={joinRoom} />;
   }
 
-  // Determine if local player is host
   const localPlayer = roomState.players.find((p) => p.socketId === socket.id);
   const isHost = localPlayer ? localPlayer.isHost : false;
 
@@ -88,7 +88,14 @@ export const App: React.FC = () => {
         />
       );
     case GamePhase.CLUE_PHASE:
-      return <CluePhaseView />;
+      return (
+        <CluePhaseView
+          room={roomState}
+          role={playerRole}
+          secretWord={secretWord}
+          socketId={socket.id || ""}
+        />
+      );
     case GamePhase.DISCUSSION:
       return <DiscussionView />;
     case GamePhase.VOTING:
