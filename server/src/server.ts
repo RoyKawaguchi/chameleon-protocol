@@ -1,5 +1,6 @@
 import express from "express";
 import { Server } from "socket.io";
+import { ServerUtil } from "./ServerUtil";
 
 import { GameRoom } from "./game/GameRoom";
 import { Player } from "./models/Player";
@@ -29,30 +30,16 @@ app.get("/", (_req, res) => {
   res.send("Chameleon Protocol server is running.");
 });
 
-// Active room registry mapping 6-character room codes to GameRoom instances
-const activeRooms = new Map<string, GameRoom>();
-const socketToRoomMap = new Map<string, string>();
-
-/**
- * Generates a random 6-character alphanumeric room code.
- */
-function generateRoomCode(): string {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-  let code = "";
-  for (let i = 0; i < 6; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return code;
-}
+const util = new ServerUtil(); // Intantiated object containing server data structures and methods
 
 io.on("connection", (socket) => {
   console.log(`[Connection] User connected: ${socket.id}`);
 
   socket.on(SocketEvent.CREATE_ROOM, ({ username }) => {
     // Generate unique 6-character room code
-    let roomId = generateRoomCode();
-    while (activeRooms.has(roomId)) {
-      roomId = generateRoomCode();
+    let roomId = util.generateRoomCode();
+    while (util.isRoomActive(roomId)) {
+      roomId = util.generateRoomCode();
     }
 
     // Create a new GameRoom object with emit callback
@@ -60,14 +47,16 @@ io.on("connection", (socket) => {
       io.to(target).emit(event, payload);
     });
 
-    socketToRoomMap.set(socket.id, roomId);
-    socket.join(roomId);
-
     // Add the host player to the room
     room.addPlayer(socket.id, username);
 
+    util.registerSocket(socket.id, roomId);
+    socket.join(roomId);
+
     // Add room to registry
-    activeRooms.set(roomId, room);
+    util.addNewRoom(roomId, room);
+
+    socket.join(roomId);
 
     console.log(
       `[Room Created] RoomID: ${roomId}, Host: ${username}, Socket: ${socket.id}`
@@ -84,7 +73,7 @@ io.on("connection", (socket) => {
     );
 
     // Search the active rooms map for a matching room code
-    const room = activeRooms.get(formattedCode);
+    const room = util.getRoom(formattedCode);
 
     if (!room) {
       io.to(socket.id).emit(SocketEvent.ERROR_MESSAGE, {
@@ -100,7 +89,7 @@ io.on("connection", (socket) => {
 
     // Add player to room and map
     room.addPlayer(socket.id, username);
-    socketToRoomMap.set(socket.id, room.roomId);
+    util.registerSocket(socket.id, room.roomId);
     socket.join(room.roomId);
 
     console.log(
@@ -113,7 +102,7 @@ io.on("connection", (socket) => {
 
   socket.on(SocketEvent.START_GAME, () => {
     try {
-      const [room, player] = getRoomAndPlayer(socket.id);
+      const [room, player] = util.getRoomAndPlayer(socket.id);
 
       // Verify the requesting player is actually the host
       if (!player.isHost) {
@@ -139,7 +128,7 @@ io.on("connection", (socket) => {
 
   socket.on(SocketEvent.SUBMIT_CLUE, ({ clueText }) => {
     try {
-      const [room, player] = getRoomAndPlayer(socket.id);
+      const [room, player] = util.getRoomAndPlayer(socket.id);
       const payload: SubmitCluePayload = { clueText: clueText };
 
       room.currentState.handleAction(
@@ -162,7 +151,7 @@ io.on("connection", (socket) => {
 
   socket.on(SocketEvent.SEND_CHAT, ({ content }) => {
     try {
-      const [room, player] = getRoomAndPlayer(socket.id);
+      const [room, player] = util.getRoomAndPlayer(socket.id);
 
       room.currentState.handleAction(room, player, SocketEvent.SEND_CHAT, {
         content,
@@ -181,7 +170,7 @@ io.on("connection", (socket) => {
 
   socket.on(SocketEvent.CAST_VOTE, ({ targetId }) => {
     try {
-      const [room, player] = getRoomAndPlayer(socket.id);
+      const [room, player] = util.getRoomAndPlayer(socket.id);
       room.currentState.handleAction(room, player, SocketEvent.CAST_VOTE, {
         targetId,
       });
@@ -198,7 +187,7 @@ io.on("connection", (socket) => {
 
   socket.on(SocketEvent.RETURN_TO_LOBBY, () => {
     try {
-      const [room, player] = getRoomAndPlayer(socket.id);
+      const [room, player] = util.getRoomAndPlayer(socket.id);
       room.currentState.handleAction(
         room,
         player,
@@ -218,38 +207,8 @@ io.on("connection", (socket) => {
 
   socket.on("disconnect", () => {
     console.log(`[Disconnection] User disconnected: ${socket.id}`);
-
-    const roomId = socketToRoomMap.get(socket.id);
-    if (!roomId) return;
-
-    socketToRoomMap.delete(socket.id);
-
-    try {
-      const room = activeRooms.get(roomId);
-      const player = room?.players.get(socket.id);
-
-      if (!room || !player) return;
-
-      room.removePlayer(socket.id);
-
-      // If room is empty, delete it from active registry
-      if (room.players.size === 0) {
-        activeRooms.delete(roomId);
-        console.log(`[Room Cleaned] Room ${roomId} deleted as it is empty.`);
-        return;
-      }
-
-      // TODO: If the host disconnected, assign host to the next available player
-      if (player.isHost && room.players.size > 0) {
-      }
-
-      room.broadcastState();
-    } catch (error) {
-      console.error(
-        `[Error] Failed handling disconnect for socket ${socket.id}:`,
-        error
-      );
-    }
+    // Handle removal of recently disconnected client
+    util.removePlayer(socket.id);
   });
 });
 
@@ -258,19 +217,3 @@ server.listen(PORT, () => {
   console.log(`Chameleon Protocol server running on port ${PORT}`);
 });
 
-// Helper function to fetch room and player safely
-function getRoomAndPlayer(socketId: string): [GameRoom, Player] {
-  const roomId = socketToRoomMap.get(socketId);
-  if (!roomId) {
-    throw new Error("Socket is not mapped to any room.");
-  }
-  const room = activeRooms.get(roomId);
-  if (!room) {
-    throw new Error("Room not found in active registry.");
-  }
-  const player = room.players.get(socketId);
-  if (!player) {
-    throw new Error("Player not found in room.");
-  }
-  return [room, player];
-}
