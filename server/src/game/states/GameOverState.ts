@@ -30,7 +30,6 @@ export class GameOverState extends GameState {
     } else {
       this.winningFaction = "CHAMELEON";
     }
-    // Compile command audit log summary
   }
 
   public handleAction(
@@ -40,13 +39,33 @@ export class GameOverState extends GameState {
     payload: any
   ): void {
     // TODO (Should): handle Chameleon last-resort guessing action
-    if (event == SocketEvent.RETURN_TO_LOBBY && player.isHost) {
+    if (event === SocketEvent.RETURN_TO_LOBBY) {
+      if (!player.isHost) {
+        room.sendPrivate(player.socketId, SocketEvent.ERROR_MESSAGE, {
+          message: "Only the host can return the room to the lobby.",
+        });
+        return;
+      }
       this.transitionNext(room);
+    } else {
+      room.sendPrivate(player.socketId, SocketEvent.ERROR_MESSAGE, {
+        message: "Invalid action received during the Game Over phase.",
+      });
     }
   }
 
   public transitionNext(room: GameRoom): void {
-    // TODO: Reset room state and return to LobbyState for a new round
-    // room.currentState = new LobbyState();
+    // Reset room round variables
+    room.secretWord = null;
+    room.clueMessages = [];
+    room.chatTextMessages = [];
+
+    // Reset player roles
+    for (const p of room.players.values()) {
+      p.role = Role.AGENT;
+    }
+
+    room.currentState = new LobbyState();
+    room.currentState.onEnter?.(room);
   }
 }

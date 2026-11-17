@@ -7,7 +7,7 @@
 
 import React, { useState, useEffect } from "react";
 import { socket } from "./services/socket";
-import { GamePhase, SocketEvent } from "./models/types";
+import { GamePhase, Role, RoomStatePayload, SocketEvent } from "./models/types";
 
 import LoginForm from "./components/LoginForm";
 import LobbyView from "./components/LobbyView";
@@ -17,50 +17,85 @@ import VotingView from "./components/VotingView";
 import GameOverView from "./components/GameOverView";
 
 export const App: React.FC = () => {
-  const [gameState, setGameState] = useState<GamePhase>();
+  const [roomState, setRoomState] = useState<RoomStatePayload | null>(null);
+  const [playerRole, setPlayerRole] = useState<Role | null>(null);
+  const [secretWord, setSecretWord] = useState<string | null>(null);
 
+  const createRoom = (username: string) => {
+    socket.emit(SocketEvent.CREATE_ROOM, { username });
+  };
 
-  /**
-   * @Author Alex
-   * 
-   * Function that is passed LoginForm.tsx. Recieves arguments from the room hosting form and sends a CREATE_ROOM socket event to the server.
-   * 
-   * @param username Username recieved as a string
-   */
-  const createRoom = (username : string) => 
-  {
-    // Emit a socket event to the server to create a room
-    socket.emit(SocketEvent.CREATE_ROOM, {username});
-  }
+  const joinRoom = (username: string, roomCode: string) => {
+    socket.emit(SocketEvent.JOIN_ROOM, { username, roomCode });
+  };
 
-  const joinRoom = (username : string, roomCode : string) =>
-  {
-    socket.emit(SocketEvent.JOIN_ROOM, {username, roomCode});
-  }
+  const startGame = () => {
+    socket.emit(SocketEvent.START_GAME);
+  };
+
+  const updateConfig = (config: any) => {
+    // TODO: emit CONFIG event
+  };
 
   useEffect(() => {
+    socket.on(
+      SocketEvent.ROOM_UPDATED,
+      (updatedPayload: RoomStatePayload | undefined) => {
+        if (!updatedPayload) {
+          setRoomState(null);
+          setPlayerRole(null);
+          setSecretWord(null);
+          return;
+        }
+        setRoomState(updatedPayload);
+      }
+    );
 
-    socket.on(SocketEvent.ROOM_UPDATED, (updatedState) => 
-    {
-      setGameState(updatedState);
+    socket.on(
+      SocketEvent.ROLE_ASSIGNED,
+      (data: { role: Role; secretWord: string | null }) => {
+        setPlayerRole(data.role);
+        setSecretWord(data.secretWord);
+      }
+    );
+
+    socket.on(SocketEvent.ERROR_MESSAGE, (err: { message: string }) => {
+      alert(err.message);
     });
 
-    return () => 
-    {
+    return () => {
       socket.off(SocketEvent.ROOM_UPDATED);
+      socket.off(SocketEvent.ROLE_ASSIGNED);
+      socket.off(SocketEvent.ERROR_MESSAGE);
     };
   }, []);
 
-  if (!gameState) {
+  if (!roomState || !roomState.gamePhase) {
     return <LoginForm createRoom={createRoom} joinRoom={joinRoom} />;
   }
 
-  switch (gameState) 
-  {
+  const localPlayer = roomState.players.find((p) => p.socketId === socket.id);
+  const isHost = localPlayer ? localPlayer.isHost : false;
+
+  switch (roomState.gamePhase) {
     case GamePhase.LOBBY:
-      return <LobbyView />;
+      return (
+        <LobbyView
+          room={roomState}
+          isHost={isHost}
+          onStartGame={startGame}
+          onUpdateConfig={updateConfig}
+        />
+      );
     case GamePhase.CLUE_PHASE:
-      return <CluePhaseView />;
+      return (
+        <CluePhaseView
+          room={roomState}
+          role={playerRole}
+          secretWord={secretWord}
+          socketId={socket.id || ""}
+        />
+      );
     case GamePhase.DISCUSSION:
       return <DiscussionView />;
     case GamePhase.VOTING:
@@ -68,7 +103,7 @@ export const App: React.FC = () => {
     case GamePhase.GAME_OVER:
       return <GameOverView />;
     default:
-      return <LoginForm createRoom={createRoom} joinRoom={joinRoom}/>;
+      return <LoginForm createRoom={createRoom} joinRoom={joinRoom} />;
   }
 };
 

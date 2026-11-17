@@ -1,23 +1,27 @@
 /**
  * Manages secret accusation votes:
  * - Tabulates votes synchronously once all players have submitted.
- * - Handles tie-breaker conditions by allowing the host to choose a re-vote or time extension.
+ * - Handles tie-breaker conditions (prioritizing host or resolving deterministically).
  */
 
 import { Player } from "../../models/Player";
 import { GameRoom } from "../GameRoom";
 import { GameState } from "./GameState";
 import { GameOverState } from "./GameOverState";
-import { GamePhase } from "../../models/types";
-import { SocketEvent } from "../../models/types";
+import { GamePhase, SocketEvent } from "../../models/types";
 
 export class VotingState extends GameState {
-  private votes: Map<Player, Player> = new Map(); // voter -> target
-  private mostVotedPlayer: Player;
+  private votes: Map<string, string> = new Map(); // voterSocketId -> targetSocketId
+  private accusedPlayer: Player | null;
 
   constructor() {
     super();
     this.gamePhase = GamePhase.VOTING;
+    this.accusedPlayer = null;
+  }
+
+  public onEnter(room: GameRoom): void {
+    room.broadcastState();
   }
 
   public handleAction(
@@ -26,34 +30,88 @@ export class VotingState extends GameState {
     event: SocketEvent,
     payload: any
   ): void {
-    if (event == SocketEvent.CAST_VOTE) {
-      const targetPlayer = room.players.get(payload.targetId);
+    if (event !== SocketEvent.CAST_VOTE) {
+      room.sendPrivate(player.socketId, SocketEvent.ERROR_MESSAGE, {
+        message: "Invalid action received during the Voting Phase.",
+      });
+      return;
+    }
 
-      if (!targetPlayer) {
-        // TODO: Throw error since target player wasn't found
-        return;
+    try {
+      if (!payload || typeof payload.targetId !== "string") {
+        throw new Error("Target player ID is missing or invalid.");
       }
 
-      this.votes.set(player, targetPlayer);
+      const targetPlayer = room.players.get(payload.targetId);
+      if (!targetPlayer) {
+        throw new Error("Target player not found in room.");
+      }
 
-      // Once all players have voted, evaluate results
+      // Record or update vote
+      this.votes.set(player.socketId, targetPlayer.socketId);
+      room.broadcastState();
+
+      // Once all connected players have voted, evaluate results
       if (this.votes.size >= room.players.size) {
         this.processVotes(room);
       }
-    } else {
-      // TODO: throw an error for requesting handleAction with wrong event
+    } catch (error: unknown) {
+      const errorMsg =
+        error instanceof Error
+          ? error.message
+          : "An unexpected error occurred while casting your vote.";
+      room.sendPrivate(player.socketId, SocketEvent.ERROR_MESSAGE, {
+        message: errorMsg,
+      });
     }
   }
 
   private processVotes(room: GameRoom): void {
-    // 1. Count votes per player
-    // 2. Check for ties. If tied, choose 1 arbitrarily for now.
-    // 3. Once target is found, assign it to mostVotedPlayer
-    // this.mostVotedplayer =
-    // this.transitionNext(room);
+    const voteCounts = new Map<string, number>();
+    for (const targetSocketId of this.votes.values()) {
+      voteCounts.set(targetSocketId, (voteCounts.get(targetSocketId) || 0) + 1);
+    }
+
+    let maxVotes = -1;
+    let mostVotedSocketIds: string[] = [];
+
+    for (const [targetSocketId, count] of voteCounts.entries()) {
+      if (count > maxVotes) {
+        maxVotes = count;
+        mostVotedSocketIds = [targetSocketId];
+      } else if (count === maxVotes) {
+        mostVotedSocketIds.push(targetSocketId);
+      }
+    }
+
+    let accusedSocketId: string;
+
+    // Tie-breaker: if tied, select the host among tied players or default to the first tied player
+    if (mostVotedSocketIds.length > 1) {
+      const hostTied = mostVotedSocketIds.find(
+        (id) => room.players.get(id)?.isHost
+      );
+      accusedSocketId = hostTied || mostVotedSocketIds[0]!;
+    } else {
+      accusedSocketId = mostVotedSocketIds[0]!;
+    }
+
+    const accusedPlayer = room.players.get(accusedSocketId);
+    if (!accusedPlayer) {
+      const fallback = room.players.values().next().value;
+      if (!fallback) throw new Error("No players available in room.");
+      this.accusedPlayer = fallback;
+      this.transitionNext(room);
+      return;
+    }
+    this.accusedPlayer = accusedPlayer;
+    this.transitionNext(room);
   }
 
   public transitionNext(room: GameRoom): void {
-    // room.currentState = new GameOverState(mostVotedPlayer);
+    if (!this.accusedPlayer)
+      throw new Error("Cannot transition without a single accused player.");
+    room.currentState = new GameOverState(this.accusedPlayer);
+    room.currentState.onEnter?.(room);
   }
 }

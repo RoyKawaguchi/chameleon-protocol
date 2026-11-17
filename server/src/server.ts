@@ -12,8 +12,6 @@ import {
 
 import http from "http";
 import cors from "cors";
-import { Socket } from "dgram";
-import { Testing } from "./tests/Testing";
 
 const app = express();
 app.use(cors());
@@ -35,19 +33,35 @@ app.get("/", (_req, res) => {
 const activeRooms = new Map<string, GameRoom>();
 const socketToRoomMap = new Map<string, string>();
 
+/**
+ * Generates a random 6-character alphanumeric room code.
+ */
+function generateRoomCode(): string {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  let code = "";
+  for (let i = 0; i < 6; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+}
+
 io.on("connection", (socket) => {
   console.log(`[Connection] User connected: ${socket.id}`);
 
   socket.on(SocketEvent.CREATE_ROOM, ({ username }) => {
-    // Hardcode room code for now
-    const roomId = "123ABC";
+    // Generate unique 6-character room code
+    let roomId = generateRoomCode();
+    while (activeRooms.has(roomId)) {
+      roomId = generateRoomCode();
+    }
 
-    // Create a new GameRoom object.
-    // We pass the callback function to the constructor, so that GameRoom can emit events itself.
+    // Create a new GameRoom object with emit callback
     const room = new GameRoom(roomId, (target, event, payload) => {
       io.to(target).emit(event, payload);
     });
+
     socketToRoomMap.set(socket.id, roomId);
+    socket.join(roomId);
 
     // Add the host player to the room
     room.addPlayer(socket.id, username);
@@ -55,42 +69,74 @@ io.on("connection", (socket) => {
     // Add room to registry
     activeRooms.set(roomId, room);
 
-    // Add player to the Socket room too
-    socket.join(roomId);
+    console.log(
+      `[Room Created] RoomID: ${roomId}, Host: ${username}, Socket: ${socket.id}`
+    );
 
-    // Send the gamephase update to the player's client
-    io.to(socket.id).emit(SocketEvent.ROOM_UPDATED, GamePhase.LOBBY);
+    // Broadcast room state so the host client updates to the lobby view with member list
+    room.broadcastState();
   });
 
   socket.on(SocketEvent.JOIN_ROOM, ({ username, roomCode }) => {
-
-    console.log(username, roomCode);
+    const formattedCode = roomCode?.trim().toUpperCase();
+    console.log(
+      `[Join Attempt] User: ${username} attempting to join room: ${formattedCode}`
+    );
 
     // Search the active rooms map for a matching room code
-    const room = activeRooms.get(roomCode);
-    
-    // If no room exits, send an ERROR_MESSAGE socket event
-    if(room == null)
-    {
-      io.to(socket.id).emit(SocketEvent.ERROR_MESSAGE, {message: "Failed to join room: Room not found."});
+    const room = activeRooms.get(formattedCode);
+
+    if (!room) {
+      io.to(socket.id).emit(SocketEvent.ERROR_MESSAGE, {
+        message: "Failed to join room: Room not found.",
+      });
+      return;
+    } else if (!room.canJoin()) {
+      io.to(socket.id).emit(SocketEvent.ERROR_MESSAGE, {
+        message: "Failed to join room: Room cannot be joined.",
+      });
       return;
     }
-    // If the room is unable to be joined, send an error message socket event
-    else if(!room.canJoin())
-    {
-      io.to(socket.id).emit(SocketEvent.ERROR_MESSAGE, {message: "Failed to join room: Room cannot be joined."});
-    }
 
-    // If no issues then create a new player in the room and connect the emitting socket to it.
+    // Add player to room and map
     room.addPlayer(socket.id, username);
     socketToRoomMap.set(socket.id, room.roomId);
     socket.join(room.roomId);
 
-    // Send a socket event to the client to update their view to the lobby
-    io.to(socket.id).emit(SocketEvent.ROOM_UPDATED, GamePhase.LOBBY);
-    });
+    console.log(
+      `[Room Joined] RoomID: ${room.roomId}, User: ${username}, Socket: ${socket.id}`
+    );
 
-  // Example event delegation hook:
+    // Broadcast updated room state to ALL players in the room (updates member list for everyone)
+    room.broadcastState();
+  });
+
+  socket.on(SocketEvent.START_GAME, () => {
+    try {
+      const [room, player] = getRoomAndPlayer(socket.id);
+
+      // Verify the requesting player is actually the host
+      if (!player.isHost) {
+        room.sendPrivate(socket.id, SocketEvent.ERROR_MESSAGE, {
+          message: "Only the host can start the game.",
+        });
+        return;
+      }
+
+      // Delegate the start action to the current state (LobbyState)
+      room.currentState.handleAction(room, player, SocketEvent.START_GAME, {});
+    } catch (error) {
+      console.error(
+        `[Error] Failed to start game for socket ${socket.id}:`,
+        error
+      );
+
+      socket.emit(SocketEvent.ERROR_MESSAGE, {
+        message: "START_GAME action failed. Room/player not found.",
+      });
+    }
+  });
+
   socket.on(SocketEvent.SUBMIT_CLUE, ({ clueText }) => {
     try {
       const [room, player] = getRoomAndPlayer(socket.id);
@@ -114,66 +160,117 @@ io.on("connection", (socket) => {
     }
   });
 
+  socket.on(SocketEvent.SEND_CHAT, ({ content }) => {
+    try {
+      const [room, player] = getRoomAndPlayer(socket.id);
+
+      room.currentState.handleAction(room, player, SocketEvent.SEND_CHAT, {
+        content,
+      });
+    } catch (error) {
+      console.error(
+        `[Error] Failed to send chat for socket ${socket.id}:`,
+        error
+      );
+
+      socket.emit(SocketEvent.ERROR_MESSAGE, {
+        message: "SEND_CHAT action failed. Room/player not found.",
+      });
+    }
+  });
+
+  socket.on(SocketEvent.CAST_VOTE, ({ targetId }) => {
+    try {
+      const [room, player] = getRoomAndPlayer(socket.id);
+      room.currentState.handleAction(room, player, SocketEvent.CAST_VOTE, {
+        targetId,
+      });
+    } catch (error) {
+      console.error(
+        `[Error] Failed to cast vote for socket ${socket.id}:`,
+        error
+      );
+      socket.emit(SocketEvent.ERROR_MESSAGE, {
+        message: "CAST_VOTE action failed.",
+      });
+    }
+  });
+
+  socket.on(SocketEvent.RETURN_TO_LOBBY, () => {
+    try {
+      const [room, player] = getRoomAndPlayer(socket.id);
+      room.currentState.handleAction(
+        room,
+        player,
+        SocketEvent.RETURN_TO_LOBBY,
+        {}
+      );
+    } catch (error) {
+      console.error(
+        `[Error] Failed to return to lobby for socket ${socket.id}:`,
+        error
+      );
+      socket.emit(SocketEvent.ERROR_MESSAGE, {
+        message: "RETURN_TO_LOBBY action failed.",
+      });
+    }
+  });
+
   socket.on("disconnect", () => {
     console.log(`[Disconnection] User disconnected: ${socket.id}`);
 
-    // Nothing needs to be done if the player was not in a room.
-    if(!socketToRoomMap.get(socket.id))
-    {
-      return;
-    }
+    const roomId = socketToRoomMap.get(socket.id);
+    if (!roomId) return;
 
-    try
-    {
-      const [room, player] = getRoomAndPlayer(socket.id)
-      
-      // If newly disconnected player is the only player in the lobby or was the host, delete room
-      if(room.players.size == 1 || player.isHost)
-      {
-        for(let [socketID, player] of room.players)
-        {
-          // return all other players to the homescreen
-          io.to(socketID).emit(SocketEvent.ROOM_UPDATED, undefined);
-        }
-        activeRooms.delete(room.roomId); // Delete Room
+    socketToRoomMap.delete(socket.id);
+
+    try {
+      const room = activeRooms.get(roomId);
+      const player = room?.players.get(socket.id);
+
+      if (!room || !player) return;
+
+      room.removePlayer(socket.id);
+
+      // If room is empty, delete it from active registry
+      if (room.players.size === 0) {
+        activeRooms.delete(roomId);
+        console.log(`[Room Cleaned] Room ${roomId} deleted as it is empty.`);
+        return;
       }
 
-      // Delete the player from the room
-      room.players.delete(player.socketId);
+      // TODO: If the host disconnected, assign host to the next available player
+      if (player.isHost && room.players.size > 0) {
+      }
+
+      room.broadcastState();
+    } catch (error) {
+      console.error(
+        `[Error] Failed handling disconnect for socket ${socket.id}:`,
+        error
+      );
     }
-    catch(error)
-    {
-      console.error("[Error] Failure to remove user from room", error);
-    }
-    // Handle immediate room reset per your rule
   });
 });
 
 const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => {
-  console.log(`[Server] Chameleon Protocol server running on port ${PORT}`);
+  console.log(`Chameleon Protocol server running on port ${PORT}`);
 });
 
+// Helper function to fetch room and player safely
 function getRoomAndPlayer(socketId: string): [GameRoom, Player] {
   const roomId = socketToRoomMap.get(socketId);
   if (!roomId) {
-    throw new Error(`Room ID not found for socket: ${socketId}`);
+    throw new Error("Socket is not mapped to any room.");
   }
-
   const room = activeRooms.get(roomId);
-  const player = room?.players.get(socketId);
-
-  if (!room || !player) {
-    throw new Error(`Room or Player missing for socket: ${socketId}`);
+  if (!room) {
+    throw new Error("Room not found in active registry.");
   }
-
+  const player = room.players.get(socketId);
+  if (!player) {
+    throw new Error("Player not found in room.");
+  }
   return [room, player];
 }
-
-// TODO
-/*
-function createNewRoom() : GameRoom
-{
-  
-}
-*/
