@@ -52,8 +52,8 @@ export class CluePhaseState extends GameState {
 
       this.submittedClues.push(clueMsg);
 
-      // Transition to next state if the clue count is equal to the expected number for the round
-      if (this.validateClueAmount(room)) 
+      // Transition to next state if and only if the clue count is equal to the expected number for the round
+      if (this.validateClueAmount(room))
       {
         this.transitionNext(room);
       }
@@ -103,12 +103,13 @@ export class CluePhaseState extends GameState {
     return false;
   }
 
-  private validateClue(payload:object) : Boolean
+  private validateClue(clue : ClueMessage) : Boolean
   {
     /*
       return true if:
         the clue text is not the secret word
     */
+    let playerClue = clue.content;
 
     return false;
   }
