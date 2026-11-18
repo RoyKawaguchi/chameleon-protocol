@@ -75,6 +75,7 @@ export interface RoomStatePayload {
   currentRound?: number;
   timerEndsAt?: number | null;
   currentTurnHolderSocketId?: string | null;
+  votesSubmitted?: number;
   clueMessages?: Array<{
     sender: { socketId: string; username: string };
     content: string;

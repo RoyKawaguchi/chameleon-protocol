@@ -50,7 +50,7 @@ export class GameRoom {
     this.secretWord = null;
     this.config = {
       clueRounds: 1,
-      discussionTimeSeconds: 90,
+      discussionTimeSeconds: 10, //changed to only temporary
     };
     this.currentState = new LobbyState();
     this.clueMessages = [];
@@ -103,6 +103,7 @@ export class GameRoom {
       activeCategory: this.activeCategory || null,
       currentRound: clueState.currentRound ?? 1,
       currentTurnHolderSocketId: clueState.currentTurnHolder?.socketId ?? null,
+      votesSubmitted: clueState.getVotesSubmitted?.() ?? 0,
       clueMessages: this.clueMessages.map((msg) => ({
         sender: {
           socketId: msg.sender.socketId,

@@ -100,7 +100,7 @@ export const App: React.FC = () => {
     case GamePhase.DISCUSSION:
       return <DiscussionView room={roomState} isHost={isHost} />;
     case GamePhase.VOTING:
-      return <VotingView />;
+      return <VotingView room={roomState} />;
     case GamePhase.GAME_OVER:
       return (
         <GameOverView
