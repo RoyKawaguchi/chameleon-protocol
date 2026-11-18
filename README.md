@@ -35,13 +35,13 @@ Then, verify your installation:
 node -v
 npm -v
 ```
+> **Note:** Use Node.js 24 for this project to keep the team's development environment consistent.
+
 ## Unfinished features, known issues, and to be implemented
 - Chat feature in Discussion state (unfinished)
 - Countdown Timer not visibly counting down (known issue)
 - Round number config doesn't update (known issue)
 - Chameleon Last Chance (to be implemented)
-
-> **Note:** Use Node.js 24 for this project to keep the team's development environment consistent.
 
 ## Getting Started
 
