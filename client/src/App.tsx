@@ -35,7 +35,7 @@ export const App: React.FC = () => {
 
   const updateConfig = (config: RoomStatePayload["config"]) => {
     // TODO: emit CONFIG event
-    socket.emit(SocketEvent.UPDATE_CONFIG, {config})
+    socket.emit(SocketEvent.UPDATE_CONFIG, { config });
   };
 
   useEffect(() => {
@@ -98,16 +98,17 @@ export const App: React.FC = () => {
         />
       );
     case GamePhase.DISCUSSION:
-      return (
-        <DiscussionView 
-          room={roomState}
-          isHost={isHost}
-        />
-      );
+      return <DiscussionView room={roomState} isHost={isHost} />;
     case GamePhase.VOTING:
       return <VotingView />;
     case GamePhase.GAME_OVER:
-      return <GameOverView />;
+      return (
+        <GameOverView
+          room={roomState}
+          isHost={isHost}
+          onReturnToLobby={() => socket.emit(SocketEvent.RETURN_TO_LOBBY)}
+        />
+      );
     default:
       return <LoginForm createRoom={createRoom} joinRoom={joinRoom} />;
   }
