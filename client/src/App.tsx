@@ -105,7 +105,7 @@ export const App: React.FC = () => {
         />
       );
     case GamePhase.VOTING:
-      return <VotingView />;
+      return <VotingView room={roomState} />;
     case GamePhase.GAME_OVER:
       return <GameOverView />;
     default:
