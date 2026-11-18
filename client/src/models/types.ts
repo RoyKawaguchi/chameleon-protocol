@@ -23,6 +23,7 @@ export interface CategoryPool {
 
 export interface GameConfig {
   clueRounds: number;
+  discussionTimeSeconds: number;
   // + some other configs in future
 }
 
@@ -35,6 +36,7 @@ export enum SocketEvent {
   SEND_CHAT = "send_chat",
   CAST_VOTE = "cast_vote",
   RETURN_TO_LOBBY = "return_to_lobby",
+  UPDATE_CONFIG = "update_config",
 
   // Server -> Client Broadcasts
   ROOM_UPDATED = "room_updated",
@@ -71,6 +73,7 @@ export interface RoomStatePayload {
   config: GameConfig;
   activeCategory: string | null;
   currentRound?: number;
+  timerEndsAt?: number | null;
   currentTurnHolderSocketId?: string | null;
   clueMessages?: Array<{
     sender: { socketId: string; username: string };

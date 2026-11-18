@@ -15,13 +15,23 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
   onUpdateConfig,
 }) => {
   const [clueRounds, setClueRounds] = useState(room.config.clueRounds);
-
+  const [discusisonTime, setDiscussionTime] = useState(room.config.discussionTimeSeconds);
   const handleRoundChange = (rounds: number) => {
     setClueRounds(rounds);
 
     onUpdateConfig({
       ...room.config,
       clueRounds: rounds,
+      discussionTimeSeconds: discusisonTime,
+    });
+  };
+  const handleDiscussionTimeChange = (seconds: number) => {
+    setDiscussionTime(seconds);
+
+    onUpdateConfig({
+      ...room.config,
+      clueRounds,
+      discussionTimeSeconds: seconds,
     });
   };
 
@@ -96,12 +106,23 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
 
               {/* ROUND TIMER */}
               <div className="mb-6">
-                <h3 className="mb-3 font-semibold">Round Timer</h3>
+                <h3 className="mb-3 font-semibold">Discussion Timer</h3>
 
                 <div className="grid grid-cols-2 gap-3">
-                    <button>
-                      Time
+                  {[60,90,120].map((seconds) => (
+                    <button
+                       key={seconds}
+                       type="button"
+                       onClick={() => handleDiscussionTimeChange(seconds)}
+                       className={`rounded-lg border p-3 font-bold transition${
+                        discusisonTime === seconds
+                          ? "border-cyan-300 bg-cyan-300/20 text-cyan-200"
+                          : "border-white/20 bg-slate-950/40 hover:bg-white/10"
+                       }`}
+                      >
+                        {seconds/60} min
                     </button>
+                  ))}
                 </div>
               </div>
 
@@ -164,14 +185,14 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
         {isHost && (
           <div className="mt-8 text-center">
             <p className="mb-4 text-sm text-slate-300">
-              {room.players.length < 3
-                ? `Waiting for ${3 - room.players.length} more player(s)...`
+              {room.players.length < 4
+                ? `Waiting for ${4 - room.players.length} more player(s)...`
                 : "Your room is ready!"}
             </p>
 
             <button
               type="button"
-              disabled={room.players.length < 3}
+              disabled={room.players.length < 4}
               onClick={onStartGame}
               className="rounded-lg bg-cyan-300 px-10 py-4 font-bold text-slate-950 transition hover:bg-cyan-100 disabled:cursor-not-allowed disabled:opacity-40"
             >

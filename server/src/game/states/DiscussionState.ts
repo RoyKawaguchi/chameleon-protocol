@@ -15,6 +15,7 @@ import { ChatTextMessage } from "../../models/Message";
 
 export class DiscussionState extends GameState {
   public timerEndsAt: number = 0;
+  private timerHandler: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
     super();
@@ -23,10 +24,17 @@ export class DiscussionState extends GameState {
 
   public onEnter(room: GameRoom): void {
     // TODO (Should): Idea for timer
-    // const durationMs = 300 * 1000; // (300 seconds times 1000 ms/s)
-    // this.timerEndsAt = Date.now() + durationMs;
+    const durationMs = room.config.discussionTimeSeconds * 1000; // (300 seconds times 1000 ms/s)
+    this.timerEndsAt = Date.now() + durationMs;
     // Broadcast state payload containing timerEndsAt to clients
     room.broadcastState();
+
+    this.timerHandler = setTimeout(() =>{
+      //advane to next state if this state is still active
+      if (room.currentState==this) {
+        this.transitionNext(room);
+      }
+    }, durationMs);
   }
 
   /**
