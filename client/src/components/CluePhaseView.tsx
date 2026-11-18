@@ -154,31 +154,31 @@ export const CluePhaseView: React.FC<CluePhaseViewProps> = ({
           </div>
           {/* Display Clues */}
           <div className="rounded-2xl border border-purple-300/30 bg-slate-900/75 p-5 shadow-lg shadow-purple-950/30 backdrop-blur-md">
-          {room.clueMessages && room.clueMessages.length > 0 && (
-            <>
-              <section>
-                <div className="mb-4 flex items-center justify-between">
-                  <h2 className="text-xs font-bold tracking-[0.2em] text-pink-300">Clues Log (Round {room.currentRound || 1})</h2>
-                </div>
-                
-                <ul>
-                  {room.clueMessages.map((msg, idx) => (
-                    <li 
-                    className="flex items-center justify-between gap-3 rounded-xl border border-white/5 bg-slate-950/60 px-4 py-3" 
-                    key={idx}>
-                      <p className="text-sm text-slate-200">
-                        {msg.sender.username} (R{msg.roundNumber})
-                      </p>
-                      <p className="font-bold text-cyan-300">
-                        "{msg.content}"
-                      </p>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            </>
-          )}
-        </div>
+            {room.clueMessages && room.clueMessages.length > 0 && (
+              <>
+                <section>
+                  <div className="mb-4 flex items-center justify-between">
+                    <h2 className="text-xs font-bold tracking-[0.2em] text-pink-300">Clues Log (Round {room.currentRound || 1})</h2>
+                  </div>
+                  
+                  <ul>
+                    {room.clueMessages.map((msg, idx) => (
+                      <li 
+                      className="flex items-center justify-between gap-3 rounded-xl border border-white/5 bg-slate-950/60 px-4 py-3" 
+                      key={idx}>
+                        <p className="text-sm text-slate-200">
+                          {msg.sender.username} (R{msg.roundNumber})
+                        </p>
+                        <p className="font-bold text-cyan-300">
+                          "{msg.content}"
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              </>
+            )}
+          </div>
         </section>
 
       </div>
