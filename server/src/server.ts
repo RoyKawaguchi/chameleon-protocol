@@ -30,7 +30,7 @@ app.get("/", (_req, res) => {
   res.send("Chameleon Protocol server is running.");
 });
 
-const util = new ServerUtil(); // Intantiated object containing server data structures and methods
+const util = new ServerUtil(); // Object containing server data structures and methods
 
 io.on("connection", (socket) => {
   console.log(`[Connection] User connected: ${socket.id}`);
