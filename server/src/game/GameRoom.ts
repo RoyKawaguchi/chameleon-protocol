@@ -50,6 +50,7 @@ export class GameRoom {
     this.secretWord = null;
     this.config = {
       clueRounds: 1,
+      discussionTimeSeconds: 90,
     };
     this.currentState = new LobbyState();
     this.clueMessages = [];
