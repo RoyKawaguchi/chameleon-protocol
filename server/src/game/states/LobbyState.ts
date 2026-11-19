@@ -1,9 +1,12 @@
 import { Player } from "../../models/Player";
 import { GameRoom } from "../GameRoom";
 import { GameState } from "./GameState";
-import { GamePhase } from "../../models/types";
+import { GamePhase, GameConfig } from "../../models/types";
 import { CluePhaseState } from "./CluePhaseState";
 import { SocketEvent, Role } from "../../models/types";
+
+const ALLOWED_ROUNDS = new Set([1, 2]);
+const ALLOWED_DISCUSSION_SECONDS = new Set([60, 90, 120]);
 
 export class LobbyState extends GameState {
   constructor() {
@@ -18,14 +21,63 @@ export class LobbyState extends GameState {
     payload: any,
   ): void {
     if (!player.isHost) {
+      room.sendPrivate(player.socketId, SocketEvent.ERROR_MESSAGE, {
+        message: "Only the host can perform lobby actions.",
+      });
       return;
     }
-    // TODO (Should): add other action handlers like for toggling categories or changing configuration.
-    if (event == SocketEvent.UPDATE_CONFIG) {
+
+    if (event === SocketEvent.UPDATE_CONFIG) {
+      const incoming: Partial<GameConfig> | undefined =
+        payload?.config ?? payload;
+      if (!incoming || typeof incoming !== "object") {
+        room.sendPrivate(player.socketId, SocketEvent.ERROR_MESSAGE, {
+          message: "Invalid configuration payload.",
+        });
+        return;
+      }
+
+      if (incoming.clueRounds !== undefined) {
+        if (
+          typeof incoming.clueRounds !== "number" ||
+          !ALLOWED_ROUNDS.has(incoming.clueRounds)
+        ) {
+          room.sendPrivate(player.socketId, SocketEvent.ERROR_MESSAGE, {
+            message: "Invalid clue rounds setting.",
+          });
+          return;
+        }
+        room.config.clueRounds = incoming.clueRounds;
+      }
+
+      if (incoming.discussionTimeSeconds !== undefined) {
+        if (
+          typeof incoming.discussionTimeSeconds !== "number" ||
+          !ALLOWED_DISCUSSION_SECONDS.has(incoming.discussionTimeSeconds)
+        ) {
+          room.sendPrivate(player.socketId, SocketEvent.ERROR_MESSAGE, {
+            message: "Invalid discussion time setting.",
+          });
+          return;
+        }
+        room.config.discussionTimeSeconds = incoming.discussionTimeSeconds;
+      }
+
+      if (incoming.chameleonLastResort !== undefined) {
+        if (typeof incoming.chameleonLastResort !== "boolean") {
+          room.sendPrivate(player.socketId, SocketEvent.ERROR_MESSAGE, {
+            message: "Invalid Chameleon Last Resort setting.",
+          });
+          return;
+        }
+        room.config.chameleonLastResort = incoming.chameleonLastResort;
+      }
+
+      room.broadcastState();
+      return;
     }
 
-    if (event == SocketEvent.START_GAME) {
-      // TODO: read payload.category and validate it (make sure it is in GameRoom.categoryPool)
+    if (event === SocketEvent.START_GAME) {
       this.transitionNext(room);
     }
   }
@@ -40,26 +92,15 @@ export class LobbyState extends GameState {
     }
     this.assignChameleon(room);
     this.selectSecretWord(room);
-    let playerOrder = this.createPlayerOrder(room);
+    const playerOrder = this.createPlayerOrder(room);
 
     room.broadcastState();
 
-    for (let [socketID, player] of room.players) {
-      // Case that player is Chameleon, send updated role info and omit secret word
-      let privatePayload;
-      if (player.role == Role.CHAMELEON) {
-        privatePayload = {
-          role: player.role,
-          secretWord: null,
-        };
-      }
-      // Case that player is Agent, send secret word and omit roles
-      else {
-        privatePayload = {
-          role: player.role,
-          secretWord: room.secretWord,
-        };
-      }
+    for (const [socketID, player] of room.players) {
+      const privatePayload =
+        player.role === Role.CHAMELEON
+          ? { role: player.role, secretWord: null }
+          : { role: player.role, secretWord: room.secretWord };
 
       room.sendPrivate(socketID, SocketEvent.ROLE_ASSIGNED, privatePayload);
     }

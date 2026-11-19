@@ -70,7 +70,7 @@ io.on("connection", (socket) => {
     activeRooms.set(roomId, room);
 
     console.log(
-      `[Room Created] RoomID: ${roomId}, Host: ${username}, Socket: ${socket.id}`
+      `[Room Created] RoomID: ${roomId}, Host: ${username}, Socket: ${socket.id}`,
     );
 
     // Broadcast room state so the host client updates to the lobby view with member list
@@ -80,7 +80,7 @@ io.on("connection", (socket) => {
   socket.on(SocketEvent.JOIN_ROOM, ({ username, roomCode }) => {
     const formattedCode = roomCode?.trim().toUpperCase();
     console.log(
-      `[Join Attempt] User: ${username} attempting to join room: ${formattedCode}`
+      `[Join Attempt] User: ${username} attempting to join room: ${formattedCode}`,
     );
 
     // Search the active rooms map for a matching room code
@@ -104,7 +104,7 @@ io.on("connection", (socket) => {
     socket.join(room.roomId);
 
     console.log(
-      `[Room Joined] RoomID: ${room.roomId}, User: ${username}, Socket: ${socket.id}`
+      `[Room Joined] RoomID: ${room.roomId}, User: ${username}, Socket: ${socket.id}`,
     );
 
     // Broadcast updated room state to ALL players in the room (updates member list for everyone)
@@ -128,11 +128,31 @@ io.on("connection", (socket) => {
     } catch (error) {
       console.error(
         `[Error] Failed to start game for socket ${socket.id}:`,
-        error
+        error,
       );
 
       socket.emit(SocketEvent.ERROR_MESSAGE, {
         message: "START_GAME action failed. Room/player not found.",
+      });
+    }
+  });
+
+  socket.on(SocketEvent.UPDATE_CONFIG, (payload) => {
+    try {
+      const [room, player] = getRoomAndPlayer(socket.id);
+      room.currentState.handleAction(
+        room,
+        player,
+        SocketEvent.UPDATE_CONFIG,
+        payload,
+      );
+    } catch (error) {
+      console.error(
+        `[Error] Failed to update config for socket ${socket.id}:`,
+        error,
+      );
+      socket.emit(SocketEvent.ERROR_MESSAGE, {
+        message: "UPDATE_CONFIG action failed.",
       });
     }
   });
@@ -146,12 +166,12 @@ io.on("connection", (socket) => {
         room,
         player,
         SocketEvent.SUBMIT_CLUE,
-        payload
+        payload,
       );
     } catch (error) {
       console.error(
         `[Error] Failed to submit clue for socket ${socket.id}:`,
-        error
+        error,
       );
 
       socket.emit(SocketEvent.ERROR_MESSAGE, {
@@ -170,11 +190,31 @@ io.on("connection", (socket) => {
     } catch (error) {
       console.error(
         `[Error] Failed to send chat for socket ${socket.id}:`,
-        error
+        error,
       );
 
       socket.emit(SocketEvent.ERROR_MESSAGE, {
         message: "SEND_CHAT action failed. Room/player not found.",
+      });
+    }
+  });
+
+  socket.on(SocketEvent.END_DISCUSSION, () => {
+    try {
+      const [room, player] = getRoomAndPlayer(socket.id);
+      room.currentState.handleAction(
+        room,
+        player,
+        SocketEvent.END_DISCUSSION,
+        {},
+      );
+    } catch (error) {
+      console.error(
+        `[Error] Failed to end discussion for socket ${socket.id}:`,
+        error,
+      );
+      socket.emit(SocketEvent.ERROR_MESSAGE, {
+        message: "END_DISCUSSION action failed.",
       });
     }
   });
@@ -188,10 +228,30 @@ io.on("connection", (socket) => {
     } catch (error) {
       console.error(
         `[Error] Failed to cast vote for socket ${socket.id}:`,
-        error
+        error,
       );
       socket.emit(SocketEvent.ERROR_MESSAGE, {
         message: "CAST_VOTE action failed.",
+      });
+    }
+  });
+
+  socket.on(SocketEvent.LAST_RESORT_GUESS, (payload) => {
+    try {
+      const [room, player] = getRoomAndPlayer(socket.id);
+      room.currentState.handleAction(
+        room,
+        player,
+        SocketEvent.LAST_RESORT_GUESS,
+        payload,
+      );
+    } catch (error) {
+      console.error(
+        `[Error] Failed to submit last-resort guess for socket ${socket.id}:`,
+        error,
+      );
+      socket.emit(SocketEvent.ERROR_MESSAGE, {
+        message: "LAST_RESORT_GUESS action failed.",
       });
     }
   });
@@ -203,12 +263,12 @@ io.on("connection", (socket) => {
         room,
         player,
         SocketEvent.RETURN_TO_LOBBY,
-        {}
+        {},
       );
     } catch (error) {
       console.error(
         `[Error] Failed to return to lobby for socket ${socket.id}:`,
-        error
+        error,
       );
       socket.emit(SocketEvent.ERROR_MESSAGE, {
         message: "RETURN_TO_LOBBY action failed.",
@@ -247,7 +307,7 @@ io.on("connection", (socket) => {
     } catch (error) {
       console.error(
         `[Error] Failed handling disconnect for socket ${socket.id}:`,
-        error
+        error,
       );
     }
   });
