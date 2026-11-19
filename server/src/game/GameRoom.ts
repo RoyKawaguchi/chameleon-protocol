@@ -31,7 +31,7 @@ export class GameRoom {
 
   constructor(
     roomId: string,
-    emit: (target: string, event: string, payload: any) => void
+    emit: (target: string, event: string, payload: any) => void,
   ) {
     this.roomId = roomId;
     this.emit = emit;
@@ -46,7 +46,6 @@ export class GameRoom {
         categories: ["Pizza", "Sushi", "Tacos", "Burger", "Ramen"],
       },
     ];
-    this.activeCategory = this.categoryPool[0]?.categoryName;
     this.secretWord = null;
     this.config = {
       clueRounds: 1,
@@ -90,7 +89,7 @@ export class GameRoom {
         username: player.username,
         isHost: player.isHost,
         score: player.score,
-      })
+      }),
     );
 
     const clueState = this.currentState as any;
@@ -135,7 +134,7 @@ export class GameRoom {
   public sendPrivate(
     targetId: string,
     eventType: SocketEvent,
-    payload: any
+    payload: any,
   ): void {
     this.emit(targetId, eventType, payload);
   }

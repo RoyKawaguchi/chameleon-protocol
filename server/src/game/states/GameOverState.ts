@@ -36,7 +36,7 @@ export class GameOverState extends GameState {
     room: GameRoom,
     player: Player,
     event: SocketEvent,
-    payload: any
+    payload: any,
   ): void {
     // TODO (Should): handle Chameleon last-resort guessing action
     if (event === SocketEvent.RETURN_TO_LOBBY) {
@@ -66,6 +66,6 @@ export class GameOverState extends GameState {
     }
 
     room.currentState = new LobbyState();
-    room.currentState.onEnter?.(room);
+    room.broadcastState();
   }
 }

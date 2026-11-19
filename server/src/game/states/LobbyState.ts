@@ -15,12 +15,14 @@ export class LobbyState extends GameState {
     room: GameRoom,
     player: Player,
     event: SocketEvent,
-    payload: any
+    payload: any,
   ): void {
     if (!player.isHost) {
       return;
     }
     // TODO (Should): add other action handlers like for toggling categories or changing configuration.
+    if (event == SocketEvent.UPDATE_CONFIG) {
+    }
 
     if (event == SocketEvent.START_GAME) {
       // TODO: read payload.category and validate it (make sure it is in GameRoom.categoryPool)
@@ -98,24 +100,34 @@ export class LobbyState extends GameState {
    * @param room
    */
   private selectSecretWord(room: GameRoom): void {
-    let activeCategory: string[] = [];
-    // Iterate through categories
-    for (let category of room.categoryPool) {
-      // Find the active category and assign it to the local list
-      if (category.categoryName == room.activeCategory) {
-        activeCategory = category.categories;
-      }
+    // Throw an exception if there are no available categories
+    if (room.categoryPool.length === 0) {
+      throw new Error("Game Room has no available categories.");
     }
-    // Throw exception if no active category is found
-    if (activeCategory.length == 0) {
+
+    // Randomly select a category from the category pool
+    const randomCategoryIndex = Math.floor(
+      Math.random() * room.categoryPool.length,
+    );
+
+    const selectedCategory = room.categoryPool[randomCategoryIndex]!;
+
+    // Update the room's active category
+    room.activeCategory = selectedCategory.categoryName;
+
+    // Throw an exception if the selected category has no words
+    if (selectedCategory.categories.length === 0) {
       throw new Error(
-        "Game Room's activeCategory is either undefined or does not match a category in categoryPool"
+        `Selected category "${selectedCategory.categoryName}" has no words.`,
       );
     }
 
-    // Pick a random number and assign the word at that index in the category to the room's secret word
-    let randomWordIndex = Math.floor(Math.random() * activeCategory.length);
-    room.secretWord = activeCategory[randomWordIndex]!; // non-null assertion operator
+    // Randomly select a word from the selected category
+    const randomWordIndex = Math.floor(
+      Math.random() * selectedCategory.categories.length,
+    );
+
+    room.secretWord = selectedCategory.categories[randomWordIndex]!;
   }
 
   /**
