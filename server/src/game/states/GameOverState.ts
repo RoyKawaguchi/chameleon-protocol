@@ -9,13 +9,13 @@ import { Player } from "../../models/Player";
 import { GameRoom } from "../GameRoom";
 import { GameState } from "./GameState";
 import { LobbyState } from "./LobbyState";
-import { GamePhase, SocketEvent } from "../../models/types";
-import { Role } from "../../models/types";
+import { GamePhase, SocketEvent, Role } from "../../models/types";
 
 export class GameOverState extends GameState {
   private accusedPlayer: Player;
   private winningFaction: "AGENTS" | "CHAMELEON" = "AGENTS";
   private chameleonGuessResult: boolean | null = null;
+  private awaitingLastResortGuess: boolean = false;
 
   constructor(accusedPlayer: Player) {
     super();
@@ -23,12 +23,38 @@ export class GameOverState extends GameState {
     this.accusedPlayer = accusedPlayer;
   }
 
+  // Getters for broadcastState() in GameRoom
+  public getWinningFaction(): "AGENTS" | "CHAMELEON" {
+    return this.winningFaction;
+  }
+
+  public getChameleonGuessResult(): boolean | null {
+    return this.chameleonGuessResult;
+  }
+
+  public isAwaitingLastResortGuess(): boolean {
+    return this.awaitingLastResortGuess;
+  }
+
   public onEnter(room: GameRoom): void {
-    if (this.accusedPlayer.role === Role.CHAMELEON) {
-      // TODO (Should): Last-resort Chameleon guess
+    if (this.accusedPlayer.role !== Role.CHAMELEON) {
+      // Loyal Agent (or non-Chameleon) was accused -> Chameleon wins immediately regardless of config
+      this.winningFaction = "CHAMELEON";
+      this.awaitingLastResortGuess = false;
+      this.chameleonGuessResult = null;
+      return;
+    }
+
+    if (room.config.chameleonLastResort) {
+      // Chameleon was caught, and Last Resort is ON -> wait for Chameleon's secret word guess
+      this.awaitingLastResortGuess = true;
+      this.chameleonGuessResult = null;
       this.winningFaction = "AGENTS";
     } else {
-      this.winningFaction = "CHAMELEON";
+      // Last Resort is OFF -> Loyal Agents win immediately
+      this.awaitingLastResortGuess = false;
+      this.chameleonGuessResult = null;
+      this.winningFaction = "AGENTS";
     }
   }
 
@@ -38,7 +64,33 @@ export class GameOverState extends GameState {
     event: SocketEvent,
     payload: any,
   ): void {
-    // TODO (Should): handle Chameleon last-resort guessing action
+    if (event === SocketEvent.LAST_RESORT_GUESS) {
+      if (!this.awaitingLastResortGuess || player.role !== Role.CHAMELEON) {
+        room.sendPrivate(player.socketId, SocketEvent.ERROR_MESSAGE, {
+          message: "Last-resort guess is not available right now.",
+        });
+        return;
+      }
+
+      const rawGuess =
+        typeof payload?.guess === "string" ? payload.guess.trim() : "";
+      if (!rawGuess) {
+        room.sendPrivate(player.socketId, SocketEvent.ERROR_MESSAGE, {
+          message: "Please enter a word guess.",
+        });
+        return;
+      }
+
+      const secret = (room.secretWord || "").trim().toLowerCase();
+      const matched = secret.length > 0 && rawGuess.toLowerCase() === secret;
+
+      this.chameleonGuessResult = matched;
+      this.awaitingLastResortGuess = false;
+      this.winningFaction = matched ? "CHAMELEON" : "AGENTS";
+
+      room.broadcastState();
+      return;
+    }
     if (event === SocketEvent.RETURN_TO_LOBBY) {
       if (!player.isHost) {
         room.sendPrivate(player.socketId, SocketEvent.ERROR_MESSAGE, {
@@ -57,6 +109,7 @@ export class GameOverState extends GameState {
   public transitionNext(room: GameRoom): void {
     // Reset room round variables
     room.secretWord = null;
+    room.activeCategory = undefined;
     room.clueMessages = [];
     room.chatTextMessages = [];
 
