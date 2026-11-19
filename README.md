@@ -35,12 +35,18 @@ Then, verify your installation:
 node -v
 npm -v
 ```
+
 > **Note:** Use Node.js 24 for this project to keep the team's development environment consistent.
 
 ## Unfinished features, known issues, and to be implemented
+
+# Config:
+
+- Implement backend (LobbyState.ts) to respond to config changes
+
 - Chat feature in Discussion state (unfinished)
 - Countdown Timer not visibly counting down (known issue)
-- Round number config doesn't update (known issue)
+
 - Chameleon Last Chance (to be implemented)
 
 ## Getting Started
@@ -48,7 +54,7 @@ npm -v
 ### 1. Clone the Repository
 
 ```bash
-git clone <https://github.com/RoyKawaguchi/chameleon-protocol>
+git clone https://github.com/RoyKawaguchi/chameleon-protocol
 cd chameleon-protocol
 ```
 
