@@ -119,7 +119,6 @@ export const VotingView: React.FC<VotingViewProps> = ({room}) => {
               <button
                 key={player.socketId}
                 type="button"
-                disabled={isCurrentPlayer}
                 onClick={() =>
                   setSelectedPlayerId(player.socketId)
                 }
@@ -127,10 +126,6 @@ export const VotingView: React.FC<VotingViewProps> = ({room}) => {
                   isSelected
                     ? "scale-[1.02] border-red-300 bg-red-950/60 shadow-lg shadow-cyan-500/20"
                     : "border-white/15 bg-slate-900/70 hover:border-purple-300/60 hover:bg-slate-800/90"
-                } ${
-                  isCurrentPlayer
-                    ? "cursor-not-allowed opacity-40"
-                    : "cursor-pointer"
                 }`}
               >
                 <div
