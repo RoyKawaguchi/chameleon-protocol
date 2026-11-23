@@ -9,8 +9,7 @@ import { Player } from "../../models/Player";
 import { GameRoom } from "../GameRoom";
 import { GameState } from "./GameState";
 import { VotingState } from "./VotingState";
-import { GamePhase } from "../../models/types";
-import { SocketEvent } from "../../models/types";
+import { GamePhase, SocketEvent } from "../../models/types";
 import { ChatTextMessage } from "../../models/Message";
 
 export class DiscussionState extends GameState {
@@ -22,16 +21,21 @@ export class DiscussionState extends GameState {
     this.gamePhase = GamePhase.DISCUSSION;
   }
 
+  private clearTimer(): void {
+    if (this.timerHandler !== null) {
+      clearTimeout(this.timerHandler);
+      this.timerHandler = null;
+    }
+  }
+
   public onEnter(room: GameRoom): void {
-    // TODO (Should): Idea for timer
-    const durationMs = room.config.discussionTimeSeconds * 1000; // (300 seconds times 1000 ms/s)
+    this.clearTimer();
+    const durationMs = room.config.discussionTimeSeconds * 1000;
     this.timerEndsAt = Date.now() + durationMs;
-    // Broadcast state payload containing timerEndsAt to clients
     room.broadcastState();
 
-    this.timerHandler = setTimeout(() =>{
-      //advane to next state if this state is still active
-      if (room.currentState==this) {
+    this.timerHandler = setTimeout(() => {
+      if (room.currentState === this) {
         this.transitionNext(room);
       }
     }, durationMs);
@@ -41,16 +45,17 @@ export class DiscussionState extends GameState {
    *
    * @param room
    * @param player
+   * @param event
    * @param payload
+   * @returns
    */
   public handleAction(
     room: GameRoom,
     player: Player,
     event: SocketEvent,
-    payload: any
+    payload: any,
   ): void {
-    if (event == SocketEvent.SEND_CHAT) {
-      // Validate that chat content exists and is a valid string
+    if (event === SocketEvent.SEND_CHAT) {
       if (
         !payload ||
         typeof payload.content !== "string" ||
@@ -62,25 +67,31 @@ export class DiscussionState extends GameState {
         return;
       }
 
-      // 1. Add message to GameRoom chat log
       const chatMsg = new ChatTextMessage(player, payload.content.trim());
       room.chatTextMessages.push(chatMsg);
-
-      // 2. Broadcast the new state so all clients update their chat feeds
       room.broadcastState();
+      return;
     }
-    // TODO (Should): write else-if blocks for cutting discussion short
-    // or extending discussion.
-    // (Ensure player.isHost is true)
-    else {
-      // Send a private error message to the user if an invalid action is triggered
-      room.sendPrivate(player.socketId, SocketEvent.ERROR_MESSAGE, {
-        message: "Invalid action received during the Discussion Phase.",
-      });
+
+    if (event === SocketEvent.END_DISCUSSION) {
+      if (!player.isHost) {
+        room.sendPrivate(player.socketId, SocketEvent.ERROR_MESSAGE, {
+          message: "Only the host can cut discussion short.",
+        });
+        return;
+      }
+
+      this.transitionNext(room);
+      return;
     }
+
+    room.sendPrivate(player.socketId, SocketEvent.ERROR_MESSAGE, {
+      message: "Invalid action received during the Discussion Phase.",
+    });
   }
 
   public transitionNext(room: GameRoom): void {
+    this.clearTimer();
     room.currentState = new VotingState();
     room.currentState.onEnter?.(room);
   }

@@ -24,7 +24,7 @@ export interface CategoryPool {
 export interface GameConfig {
   clueRounds: number;
   discussionTimeSeconds: number;
-  // + some other configs in future
+  chameleonLastResort: boolean;
 }
 
 export enum SocketEvent {
@@ -34,7 +34,9 @@ export enum SocketEvent {
   START_GAME = "start_game",
   SUBMIT_CLUE = "submit_clue",
   SEND_CHAT = "send_chat",
+  END_DISCUSSION = "end_discussion",
   CAST_VOTE = "cast_vote",
+  LAST_RESORT_GUESS = "last_resort_guess",
   RETURN_TO_LOBBY = "return_to_lobby",
   UPDATE_CONFIG = "update_config",
 
@@ -65,7 +67,11 @@ export interface CastVotePayload {
   targetId: string;
 }
 
-// 3. Server -> Client Payload (The Room State Snapshot)
+export interface LastResortGuessPayload {
+  guess: string;
+}
+
+// Server -> Client Payload (The Room State Snapshot)
 export interface RoomStatePayload {
   roomId: string;
   gamePhase: GamePhase;
@@ -76,6 +82,9 @@ export interface RoomStatePayload {
   timerEndsAt?: number | null;
   currentTurnHolderSocketId?: string | null;
   votesSubmitted?: number;
+  winningFaction?: "AGENTS" | "CHAMELEON" | null;
+  awaitingLastResortGuess?: boolean;
+  chameleonGuessResult?: boolean | null;
   clueMessages?: Array<{
     sender: { socketId: string; username: string };
     content: string;
@@ -93,5 +102,5 @@ export interface PlayerDto {
   username: string;
   isHost: boolean;
   score: number;
-  role?: string; // Only sent privately or revealed at end of game
+  role?: string;
 }

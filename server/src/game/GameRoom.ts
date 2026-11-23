@@ -16,11 +16,14 @@ import {
 } from "../models/types";
 import { GameState } from "./states/GameState";
 import { LobbyState } from "./states/LobbyState";
+import { DiscussionState } from "./states/DiscussionState";
+import { VotingState } from "./states/VotingState";
+import { GameOverState } from "./states/GameOverState";
 
 export class GameRoom {
   public roomId: string;
   private emit: (target: string, event: string, payload: any) => void;
-  public players: Map<string, Player>; // socketId -> Player (prevent two Player objects with same socketID)
+  public players: Map<string, Player>;
   public categoryPool: CategoryPool[];
   public activeCategory: string | undefined;
   public secretWord: string | null;
@@ -31,7 +34,7 @@ export class GameRoom {
 
   constructor(
     roomId: string,
-    emit: (target: string, event: string, payload: any) => void
+    emit: (target: string, event: string, payload: any) => void,
   ) {
     this.roomId = roomId;
     this.emit = emit;
@@ -46,11 +49,11 @@ export class GameRoom {
         categories: ["Pizza", "Sushi", "Tacos", "Burger", "Ramen"],
       },
     ];
-    this.activeCategory = this.categoryPool[0]?.categoryName;
     this.secretWord = null;
     this.config = {
       clueRounds: 1,
-      discussionTimeSeconds: 10, //changed to only temporary
+      discussionTimeSeconds: 60,
+      chameleonLastResort: true,
     };
     this.currentState = new LobbyState();
     this.clueMessages = [];
@@ -90,20 +93,38 @@ export class GameRoom {
         username: player.username,
         isHost: player.isHost,
         score: player.score,
-      })
+      }),
     );
 
     const clueState = this.currentState as any;
+    const timerEndsAt =
+      this.currentState instanceof DiscussionState
+        ? this.currentState.timerEndsAt
+        : null;
+    const votesSubmitted =
+      this.currentState instanceof VotingState
+        ? this.currentState.getVotesSubmitted()
+        : 0;
+    const gameOverState =
+      this.currentState instanceof GameOverState ? this.currentState : null;
 
     const payload: RoomStatePayload = {
       roomId: this.roomId,
       gamePhase: this.currentState.gamePhase,
       players: publicPlayers,
-      config: this.config,
+      config: { ...this.config },
       activeCategory: this.activeCategory || null,
       currentRound: clueState.currentRound ?? 1,
+      timerEndsAt,
       currentTurnHolderSocketId: clueState.currentTurnHolder?.socketId ?? null,
-      votesSubmitted: clueState.getVotesSubmitted?.() ?? 0,
+      votesSubmitted,
+      winningFaction: gameOverState ? gameOverState.getWinningFaction() : null,
+      awaitingLastResortGuess: gameOverState
+        ? gameOverState.isAwaitingLastResortGuess()
+        : false,
+      chameleonGuessResult: gameOverState
+        ? gameOverState.getChameleonGuessResult()
+        : null,
       clueMessages: this.clueMessages.map((msg) => ({
         sender: {
           socketId: msg.sender.socketId,
@@ -135,7 +156,7 @@ export class GameRoom {
   public sendPrivate(
     targetId: string,
     eventType: SocketEvent,
-    payload: any
+    payload: any,
   ): void {
     this.emit(targetId, eventType, payload);
   }

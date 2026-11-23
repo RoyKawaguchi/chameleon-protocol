@@ -34,8 +34,11 @@ export const App: React.FC = () => {
   };
 
   const updateConfig = (config: RoomStatePayload["config"]) => {
-    // TODO: emit CONFIG event
-    socket.emit(SocketEvent.UPDATE_CONFIG, {config})
+    socket.emit(SocketEvent.UPDATE_CONFIG, config);
+  };
+
+  const endDiscussion = () => {
+    socket.emit(SocketEvent.END_DISCUSSION);
   };
 
   useEffect(() => {
@@ -49,7 +52,7 @@ export const App: React.FC = () => {
           return;
         }
         setRoomState(updatedPayload);
-      }
+      },
     );
 
     socket.on(
@@ -57,7 +60,7 @@ export const App: React.FC = () => {
       (data: { role: Role; secretWord: string | null }) => {
         setPlayerRole(data.role);
         setSecretWord(data.secretWord);
-      }
+      },
     );
 
     socket.on(SocketEvent.ERROR_MESSAGE, (err: { message: string }) => {
@@ -99,15 +102,22 @@ export const App: React.FC = () => {
       );
     case GamePhase.DISCUSSION:
       return (
-        <DiscussionView 
+        <DiscussionView
           room={roomState}
           isHost={isHost}
+          onEndDiscussion={endDiscussion}
         />
       );
     case GamePhase.VOTING:
       return <VotingView room={roomState} />;
     case GamePhase.GAME_OVER:
-      return <GameOverView />;
+      return (
+        <GameOverView
+          room={roomState}
+          isHost={isHost}
+          onReturnToLobby={() => socket.emit(SocketEvent.RETURN_TO_LOBBY)}
+        />
+      );
     default:
       return <LoginForm createRoom={createRoom} joinRoom={joinRoom} />;
   }
