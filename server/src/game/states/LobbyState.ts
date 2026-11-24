@@ -77,14 +77,80 @@ export class LobbyState extends GameState {
       return;
     }
 
+    if (event === SocketEvent.TOGGLE_CATEGORY) {
+      if (!payload || typeof payload.categoryId !== "string") {
+        room.sendPrivate(player.socketId, SocketEvent.ERROR_MESSAGE, {
+          message: "Invalid category toggle payload.",
+        });
+        return;
+      }
+      const updated = room.toggleCategory(payload.categoryId);
+      if (!updated) {
+        room.sendPrivate(player.socketId, SocketEvent.ERROR_MESSAGE, {
+          message: "Category not found.",
+        });
+        return;
+      }
+      room.broadcastState();
+      return;
+    }
+
+    if (event === SocketEvent.TOGGLE_CATEGORY_ITEM) {
+      if (
+        !payload ||
+        typeof payload.categoryId !== "string" ||
+        typeof payload.itemId !== "string"
+      ) {
+        room.sendPrivate(player.socketId, SocketEvent.ERROR_MESSAGE, {
+          message: "Invalid category item toggle payload.",
+        });
+        return;
+      }
+      const updated = room.toggleCategoryItem(
+        payload.categoryId,
+        payload.itemId,
+      );
+      if (!updated) {
+        room.sendPrivate(player.socketId, SocketEvent.ERROR_MESSAGE, {
+          message: "Category or item not found.",
+        });
+        return;
+      }
+      room.broadcastState();
+      return;
+    }
+
+    if (event === SocketEvent.SAVE_CUSTOM_CATEGORY) {
+      try {
+        const categoryName =
+          typeof payload?.categoryName === "string" ? payload.categoryName : "";
+        const words = Array.isArray(payload?.words)
+          ? payload.words
+          : typeof payload?.wordsText === "string"
+            ? payload.wordsText.split(",")
+            : [];
+
+        room.saveCustomCategory(categoryName, words);
+        room.broadcastState();
+      } catch (error) {
+        room.sendPrivate(player.socketId, SocketEvent.ERROR_MESSAGE, {
+          message:
+            error instanceof Error
+              ? error.message
+              : "Failed to save custom category.",
+        });
+      }
+      return;
+    }
+
     if (event === SocketEvent.START_GAME) {
       this.transitionNext(room);
     }
   }
 
   /**
-   * Transition to CluePhaseState. Initializes the game.
-   * @param room
+- Transition to CluePhaseState. Initializes the game.
+- @param room
    */
   public transitionNext(room: GameRoom): void {
     if (room.players.size < 4) {
@@ -94,7 +160,7 @@ export class LobbyState extends GameState {
     this.selectSecretWord(room);
     const playerOrder = this.createPlayerOrder(room);
 
-    room.broadcastState();
+    room.currentState = new CluePhaseState(playerOrder, room.config.clueRounds);
 
     for (const [socketID, player] of room.players) {
       const privatePayload =
@@ -105,16 +171,15 @@ export class LobbyState extends GameState {
       room.sendPrivate(socketID, SocketEvent.ROLE_ASSIGNED, privatePayload);
     }
 
-    room.currentState = new CluePhaseState(playerOrder, room.config.clueRounds);
     room.currentState.onEnter?.(room);
   }
 
   /**
-   * @author Alex
+- @author Alex
    *
-   * Assign one random player in the room the role of Chameleon.
+- Assign one random player in the room the role of Chameleon.
    *
-   * @param room
+- @param room
    */
   private assignChameleon(room: GameRoom): void {
     // Pick a random number from 0 to the number of players minus 1
@@ -133,51 +198,48 @@ export class LobbyState extends GameState {
   }
 
   /**
-   * @author Alex
+- @author Alex
    *
-   * Select a word from the chosen category and assign it to the room's
-   * secretWord variable.
+- Select a word from the chosen category and assign it to the room's
+- secretWord variable.
    *
-   * @param room
+- @param room
    */
   private selectSecretWord(room: GameRoom): void {
-    // Throw an exception if there are no available categories
-    if (room.categoryPool.length === 0) {
-      throw new Error("Game Room has no available categories.");
-    }
-
-    // Randomly select a category from the category pool
-    const randomCategoryIndex = Math.floor(
-      Math.random() * room.categoryPool.length,
+    // Filter to enabled categories that have at least one enabled item
+    const eligibleCategories = room.categoryPool.filter(
+      (cat) => cat.enabled && cat.items.some((item) => item.enabled),
     );
 
-    const selectedCategory = room.categoryPool[randomCategoryIndex]!;
+    if (eligibleCategories.length === 0) {
+      throw new Error("Game Room has no enabled categories with active words.");
+    }
+
+    // Randomly select a category from the eligible categories
+    const randomCategoryIndex = Math.floor(
+      Math.random() * eligibleCategories.length,
+    );
+
+    const selectedCategory = eligibleCategories[randomCategoryIndex]!;
 
     // Update the room's active category
     room.activeCategory = selectedCategory.categoryName;
 
-    // Throw an exception if the selected category has no words
-    if (selectedCategory.categories.length === 0) {
-      throw new Error(
-        `Selected category "${selectedCategory.categoryName}" has no words.`,
-      );
-    }
+    const enabledItems = selectedCategory.items.filter((item) => item.enabled);
 
-    // Randomly select a word from the selected category
-    const randomWordIndex = Math.floor(
-      Math.random() * selectedCategory.categories.length,
-    );
+    // Randomly select a word from the enabled items in the selected category
+    const randomWordIndex = Math.floor(Math.random() * enabledItems.length);
 
-    room.secretWord = selectedCategory.categories[randomWordIndex]!;
+    room.secretWord = enabledItems[randomWordIndex]!.word;
   }
 
   /**
-   * @author Alex
+- @author Alex
    *
-   * Creates a list of players in the lobby in a random order
+- Creates a list of players in the lobby in a random order
    *
-   * @param room
-   * @returns
+- @param room
+- @returns
    */
   private createPlayerOrder(room: GameRoom): Player[] {
     let playerOrder: Player[] = [];
