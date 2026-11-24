@@ -30,11 +30,18 @@ export class Testing
         const roomId = Math.floor(Math.random() * 9999); // Generate random room ID (Just number between 0 and 9999)
         const newRoom = new GameRoom(roomId.toString(), () => {});
 
+        const playerList: string[] = [];
+
         for(let i = 0; i < numPlayers; i++)
         {
             let name = "Player " + i.toString();
-            let socketId = Math.floor(Math.random() * 999).toString();
-
+            let socketId : string;
+            do
+            {
+                socketId = Math.floor(Math.random() * 999).toString(); 
+            } while(playerList.includes(socketId))
+            
+            playerList.push(socketId);
             newRoom.addPlayer(socketId, name); // Add a new player with a random socket id and sequential player number to the room
         }
 

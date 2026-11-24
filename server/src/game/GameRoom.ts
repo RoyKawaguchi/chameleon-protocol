@@ -138,6 +138,11 @@ export class GameRoom {
     this.emit(targetId, eventType, payload);
   }
 
+  public getPlayerCount() : number
+  {
+    return this.players.size;
+  }
+
   /**
    * @Author Alex
    *

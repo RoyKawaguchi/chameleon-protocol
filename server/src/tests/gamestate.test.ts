@@ -24,9 +24,6 @@ describe("Chameleon Protocol - Game State Tests", () =>
          */
         describe("Lobby State to Clue State Transition", () =>
         {
-
-            console.log("Creating " + Testing.numTests.toString() + " rooms and testing the transition to ClueState...");
-
             for(let i = 0; i < Testing.numTests; i++)
             {
                 const dummyRoom = Testing.createDummyRoom(4);
@@ -60,8 +57,6 @@ describe("Chameleon Protocol - Game State Tests", () =>
 
                     expect(numChameleon).toBe(1);
                 })
-
-                Testing.printRoomInfo(dummyRoom);
             }
         })
 
