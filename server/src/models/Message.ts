@@ -1,5 +1,5 @@
 /**
- * Defines the message hierarchy for player and system messages.
+- Defines the message hierarchy for player and system messages.
  */
 import { Player } from "./Player";
 
@@ -16,8 +16,8 @@ export abstract class Message {
 }
 
 /**
- * Concrete class for a system message.
- * For example, "System: Roy's turn to send his 1st clue!"
+- Concrete class for a system message.
+- For example, "System: Roy's turn to send his 1st clue!"
  */
 export class SystemMessage extends Message {
   public constructor(content: string) {
@@ -26,7 +26,7 @@ export class SystemMessage extends Message {
 }
 
 /**
- * Abstract class for a player message. Inherited by ClueMessage and ChatTextMessage
+- Abstract class for a player message. Inherited by ClueMessage and ChatTextMessage
  */
 export abstract class PlayerMessage extends Message {
   public readonly sender: Player;
@@ -38,7 +38,7 @@ export abstract class PlayerMessage extends Message {
 }
 
 /**
- * Concrete class for a submitted single-word clue.
+- Concrete class for a submitted single-word clue.
  */
 export class ClueMessage extends PlayerMessage {
   public readonly roundNumber: number;
@@ -50,15 +50,26 @@ export class ClueMessage extends PlayerMessage {
   }
 
   private validateClueContent(content: string): void {
-    // TODO:
-    // Ensure clue is not too long (maybe max 15 chars?)
-    // No space, punctuation, etc.
-    // Throw an Error if any rule is broken. i.e., don't allow instantiation
+    if (!content || content.trim().length === 0) {
+      throw new Error("Clue cannot be empty.");
+    }
+
+    if (content.length > 15) {
+      throw new Error("Clue must be 15 characters or fewer.");
+    }
+
+    if (/\s/.test(content)) {
+      throw new Error("Clue must be a single word with no spaces.");
+    }
+
+    if (!/^[a-zA-Z0-9]+$/.test(content)) {
+      throw new Error("Clue cannot contain punctuation or special characters.");
+    }
   }
 }
 
 /**
- * Standard text message sent during DiscussionState open chat.
+- Standard text message sent during DiscussionState open chat.
  */
 export class ChatTextMessage extends PlayerMessage {
   constructor(sender: Player, content: string) {
