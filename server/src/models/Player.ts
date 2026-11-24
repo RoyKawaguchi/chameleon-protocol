@@ -9,7 +9,7 @@ import { Role } from "./types";
 export class Player {
   public readonly socketId: string;
   public readonly username: string;
-  public readonly isHost: boolean;
+  public isHost: boolean;
   public role: Role;
   public readonly score: number;
 

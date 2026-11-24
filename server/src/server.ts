@@ -20,7 +20,7 @@ app.use(express.json());
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:5173", // Adjust for client URL in production
+    origin: "*", // Restrict to frontend URL later.
     methods: ["GET", "POST"],
   },
 });
@@ -34,7 +34,7 @@ const activeRooms = new Map<string, GameRoom>();
 const socketToRoomMap = new Map<string, string>();
 
 /**
- * Generates a random 6-character alphanumeric room code.
+- Generates a random 6-character alphanumeric room code.
  */
 function generateRoomCode(): string {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -45,6 +45,9 @@ function generateRoomCode(): string {
   return code;
 }
 
+/**
+- Execute this when an intial connection is detected.
+ */
 io.on("connection", (socket) => {
   console.log(`[Connection] User connected: ${socket.id}`);
 
@@ -132,7 +135,10 @@ io.on("connection", (socket) => {
       );
 
       socket.emit(SocketEvent.ERROR_MESSAGE, {
-        message: "START_GAME action failed. Room/player not found.",
+        message:
+          error instanceof Error
+            ? error.message
+            : "START_GAME action failed. Room/player not found.",
       });
     }
   });
@@ -153,6 +159,66 @@ io.on("connection", (socket) => {
       );
       socket.emit(SocketEvent.ERROR_MESSAGE, {
         message: "UPDATE_CONFIG action failed.",
+      });
+    }
+  });
+
+  socket.on(SocketEvent.TOGGLE_CATEGORY, (payload) => {
+    try {
+      const [room, player] = getRoomAndPlayer(socket.id);
+      room.currentState.handleAction(
+        room,
+        player,
+        SocketEvent.TOGGLE_CATEGORY,
+        payload,
+      );
+    } catch (error) {
+      console.error(
+        `[Error] Failed to toggle category for socket ${socket.id}:`,
+        error,
+      );
+      socket.emit(SocketEvent.ERROR_MESSAGE, {
+        message: "TOGGLE_CATEGORY action failed.",
+      });
+    }
+  });
+
+  socket.on(SocketEvent.TOGGLE_CATEGORY_ITEM, (payload) => {
+    try {
+      const [room, player] = getRoomAndPlayer(socket.id);
+      room.currentState.handleAction(
+        room,
+        player,
+        SocketEvent.TOGGLE_CATEGORY_ITEM,
+        payload,
+      );
+    } catch (error) {
+      console.error(
+        `[Error] Failed to toggle category item for socket ${socket.id}:`,
+        error,
+      );
+      socket.emit(SocketEvent.ERROR_MESSAGE, {
+        message: "TOGGLE_CATEGORY_ITEM action failed.",
+      });
+    }
+  });
+
+  socket.on(SocketEvent.SAVE_CUSTOM_CATEGORY, (payload) => {
+    try {
+      const [room, player] = getRoomAndPlayer(socket.id);
+      room.currentState.handleAction(
+        room,
+        player,
+        SocketEvent.SAVE_CUSTOM_CATEGORY,
+        payload,
+      );
+    } catch (error) {
+      console.error(
+        `[Error] Failed to save custom category for socket ${socket.id}:`,
+        error,
+      );
+      socket.emit(SocketEvent.ERROR_MESSAGE, {
+        message: "SAVE_CUSTOM_CATEGORY action failed.",
       });
     }
   });
@@ -290,6 +356,8 @@ io.on("connection", (socket) => {
 
       if (!room || !player) return;
 
+      const wasInGame = room.currentState.gamePhase !== GamePhase.LOBBY;
+
       room.removePlayer(socket.id);
 
       // If room is empty, delete it from active registry
@@ -299,8 +367,28 @@ io.on("connection", (socket) => {
         return;
       }
 
-      // TODO: If the host disconnected, assign host to the next available player
+      // If disconnected mid-game, announce disconnect and prompt remaining players to refresh/restart
+      if (wasInGame) {
+        io.to(roomId).emit(SocketEvent.PLAYER_DISCONNECTED, {
+          username: player.username,
+          message: `${player.username} disconnected mid-game. Please refresh the page to start a new game.`,
+        });
+        for (const remainingSocketId of room.players.keys()) {
+          socketToRoomMap.delete(remainingSocketId);
+        }
+        activeRooms.delete(roomId);
+        console.log(
+          `[Room Closed] Room ${roomId} closed due to mid-game disconnect by ${player.username}.`,
+        );
+        return;
+      }
+
+      // If the host disconnected in the lobby, assign host to the next available player
       if (player.isHost && room.players.size > 0) {
+        const nextHost = room.players.values().next().value;
+        if (nextHost) {
+          nextHost.isHost = true;
+        }
       }
 
       room.broadcastState();
@@ -313,8 +401,9 @@ io.on("connection", (socket) => {
   });
 });
 
-const PORT = process.env.PORT || 4000;
-server.listen(PORT, () => {
+const PORT = Number(process.env.PORT) || 4000;
+
+server.listen(PORT, "0.0.0.0", () => {
   console.log(`Chameleon Protocol server running on port ${PORT}`);
 });
 

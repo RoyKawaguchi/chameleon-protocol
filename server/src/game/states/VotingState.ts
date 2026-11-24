@@ -35,7 +35,7 @@ export class VotingState extends GameState {
     room: GameRoom,
     player: Player,
     event: SocketEvent,
-    payload: any
+    payload: any,
   ): void {
     if (event !== SocketEvent.CAST_VOTE) {
       room.sendPrivate(player.socketId, SocketEvent.ERROR_MESSAGE, {
@@ -50,7 +50,7 @@ export class VotingState extends GameState {
       }
 
       const targetPlayer = room.players.get(payload.targetId);
-      
+
       if (!targetPlayer) {
         throw new Error("Target player not found in room.");
       }
@@ -97,7 +97,7 @@ export class VotingState extends GameState {
     // Tie-breaker: if tied, select the host among tied players or default to the first tied player
     if (mostVotedSocketIds.length > 1) {
       const hostTied = mostVotedSocketIds.find(
-        (id) => room.players.get(id)?.isHost
+        (id) => room.players.get(id)?.isHost,
       );
       accusedSocketId = hostTied || mostVotedSocketIds[0]!;
     } else {
@@ -121,7 +121,5 @@ export class VotingState extends GameState {
       throw new Error("Cannot transition without a single accused player.");
     room.currentState = new GameOverState(this.accusedPlayer);
     room.currentState.onEnter?.(room);
-
-    room.broadcastState();
   }
 }
