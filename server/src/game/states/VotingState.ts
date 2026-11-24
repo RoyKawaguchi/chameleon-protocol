@@ -54,9 +54,6 @@ export class VotingState extends GameState {
       if (!targetPlayer) {
         throw new Error("Target player not found in room.");
       }
-      if (targetPlayer.socketId === player.socketId) {
-        throw new Error("You cannot vote for yourself.");
-      }
 
       // Record or update vote
       this.votes.set(player.socketId, targetPlayer.socketId);

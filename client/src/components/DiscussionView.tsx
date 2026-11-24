@@ -6,9 +6,9 @@
 - - Host controls: "Cut Short" and "+1 Min Extension".
  */
 
-import React, { useState, useEffect } from "react";
-//import { socket } from "../services/socket";
-import { RoomStatePayload } from "../models/types";
+import React, { useState, useEffect} from "react";
+import { socket } from "../services/socket";
+import { RoomStatePayload, SocketEvent } from "../models/types";
 
 interface DiscussionViewProps {
   room: RoomStatePayload;
@@ -24,12 +24,19 @@ const formatTime = (seconds: number): string => {
   return `${minutes}:${remainingSeconds}`;
 };
 
+const formatMessageTime = (timestamp: number): string => {
+  return new Date(timestamp).toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
 export const DiscussionView: React.FC<DiscussionViewProps> = ({
   room,
   isHost,
   onEndDiscussion,
 }) => {
-  //const [message, setMessage] = useState("");
+  const [message, setMessage] = useState("");
   const [secondsLeft, setSecondsLeft] = useState(() =>
     room.timerEndsAt
       ? Math.max(0, Math.ceil((room.timerEndsAt - Date.now()) / 1000))
@@ -37,7 +44,7 @@ export const DiscussionView: React.FC<DiscussionViewProps> = ({
   );
 
   const chatMessages = room.chatTextMessages ?? [];
-  //const clueMessages = room.clueMessages ?? [];
+  const currentSocketId = socket.id;
 
   // Countdown timer synchronized with the server timestamp
   useEffect(() => {
@@ -55,6 +62,21 @@ export const DiscussionView: React.FC<DiscussionViewProps> = ({
 
     return () => window.clearInterval(interval);
   }, [room.timerEndsAt]);
+
+  // Send a message to the server
+  const handleSendMessage = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const trimmedMessage = message.trim();
+
+    if (!trimmedMessage) return;
+
+    socket.emit(SocketEvent.SEND_CHAT, {
+      content: trimmedMessage,
+    });
+
+    setMessage("");
+  };
 
   return (
     <main
@@ -74,14 +96,8 @@ export const DiscussionView: React.FC<DiscussionViewProps> = ({
           "auto, auto, auto, 120px 120px, 160px 160px, 200px 200px, 140px 140px, 180px 180px",
       }}
     >
-      {/* <div className="flex flex-col h-screen">
-        <p>Header with countdown timer & host override controls</p>
-        <p>Pinned clue list</p>
-        <p>Scrollable text message feed & text input box</p>
-      </div> */}
-
       <div className="relative z-10 mx-auto max-w-6xl">
-        {/*Header + Timer? -> might move the timer idk*/}
+        {/*Header + Timer*/}
         <header className="mb-7 flex flex-wrap items-center justify-between gap-4">
           <div>
             <h1
@@ -156,7 +172,7 @@ export const DiscussionView: React.FC<DiscussionViewProps> = ({
               <section>
                 <div className="mb-4 flex items-center justify-between">
                   <h2 className="text-xs font-bold tracking-[0.2em] text-green-600">
-                    Clues Log (Round {room.currentRound || 1})
+                    Clues Log
                   </h2>
                 </div>
 
@@ -178,17 +194,95 @@ export const DiscussionView: React.FC<DiscussionViewProps> = ({
           )}
         </section>
 
-        {/*TODO: Discussion Chat*/}
-        <section className="">
-          <div className="">
-            <h2 className="">CHAT</h2>
-            <span className="">{chatMessages.length} messages</span>
+        {/*Discussion Chat*/}
+        <section className="mt-4 overflow-hidden rounded-2xl border border-cyan-300/20 bg-slate-900/70 
+        shadow-xl shadow-cyan-950/20 backdrop-blur-md">
+          <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
+            <h2 className="text-lg font-black tracking-[0.15em] text-cyan-300">CHAT</h2>
+            <p className="text-xs text-slate-400">
+                Discuss your suspicions with the other players.
+            </p>
+            <span className="rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-xs text-cyan-200">
+              {chatMessages.length} messages
+            </span>
           </div>
-          {/*TODO: Show chat */}
-          <div className=""></div>
+          {/*Show chat on screen*/}
+          <div className="flex h-[400px] flex-col gap-4 overflow-y-auto p-5">
+            {chatMessages.length === 0 ? (
+              <div className="flex flex-1 items-center justify-center">
+                <div className="text-center">
+                  <p className="mb-2 text-lg font-bold text-slate-300">
+                    No messages yet
+                  </p>
 
-          {/*TODO: Type in chattttt*/}
-          <div className=""></div>
+                  <p className="text-sm text-slate-500">
+                    Start the discussion!
+                  </p>
+                </div>
+              </div>
+            ) : (
+              chatMessages.map((msg, idx) => {
+                const isMine = msg.sender.socketId === currentSocketId;
+
+                return (
+                  <div
+                    key={`${msg.timestamp}-${msg.sender.socketId}-${idx}`}
+                    className={`flex ${
+                      isMine ? "justify-end" : "justify-start"
+                    }`}
+                  >
+                    <div
+                      className={`max-w-[85%] rounded-2xl px-4 py-3 sm:max-w-[70%] ${
+                        isMine
+                          ? "rounded-br-sm border border-cyan-300/30 bg-cyan-500/20"
+                          : "rounded-bl-sm border border-purple-300/20 bg-slate-800"
+                      }`}
+                    >
+                      <div className="mb-1 flex items-center justify-between gap-4">
+                        <p
+                          className={`text-xs font-bold ${
+                            isMine ? "text-cyan-300" : "text-purple-300"
+                          }`}
+                        >
+                          {isMine ? "You" : msg.sender.username}
+                        </p>
+
+                        <p className="text-[10px] text-slate-500">
+                          {formatMessageTime(msg.timestamp)}
+                        </p>
+                      </div>
+
+                      <p className="whitespace-pre-wrap break-words text-sm text-slate-100">
+                        {msg.content}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/*Type in chattttt*/}
+          <form
+            onSubmit={handleSendMessage}
+            className="flex gap-3 border-t border-white/10 bg-slate-950/50 p-4"
+          >
+            <input
+              type="text"
+              value={message}
+              onChange={(event) => setMessage(event.target.value)}
+              placeholder="Type your message..."
+              className="min-w-0 flex-1 rounded-xl border border-white/10 bg-slate-800 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-300/50 focus:ring-1 focus:ring-cyan-300/30"
+            />
+
+            <button
+              type="submit"
+              disabled={!message.trim()}
+              className="rounded-xl bg-gradient-to-r from-cyan-500 to-purple-500 px-5 py-3 text-sm font-bold text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Send
+            </button>
+          </form>
         </section>
       </div>
     </main>
