@@ -38,9 +38,6 @@ io.on("connection", (socket) => {
   socket.on(SocketEvent.CREATE_ROOM, ({ username }) => {
     // Generate unique 6-character room code
     let roomId = util.generateRoomCode();
-    while (util.isRoomActive(roomId)) {
-      roomId = util.generateRoomCode();
-    }
 
     // Create a new GameRoom object with emit callback
     const room = new GameRoom(roomId, (target, event, payload) => {

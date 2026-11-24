@@ -13,72 +13,49 @@ export class ServerUtil
 
     constructor(){}
 
-    /**
-     * @Author Alex
-     * 
-     * @param socketID string ID of the connected socket
-     * @param roomID string ID of the new room
-     * @param room the new GameRoom object
-     * 
-     * Adds a new GameRoom object to the registry
-     */
+    public getRoomMapSize() : number
+    {
+        return this.activeRooms.size;
+    }
+    public getSocketMapSize() : number
+    {
+        return this.socketToRoomMap.size;
+    }
+
     public addNewRoom(roomID : string, newRoom : GameRoom)
     {
-        this.activeRooms.set(roomID, newRoom);
+        if(this.isRoomActive(roomID))
+        {
+            throw new Error("Room with that ID is already active!");
+        }
+        else
+        {
+            this.activeRooms.set(roomID, newRoom);
+        }
     }
-    /**
-     * @Author Alex
-     * @param roomID ID of room to be deleted
-     */
     private removeRoom(roomID: string)
     {
         this.activeRooms.delete(roomID);
     }
-    /**
-     * @Author Alex
-     * @param roomID string ID of a room
-     * @returns A boolean reperesenting whether a room with the input ID is active.
-     */
+
     public isRoomActive(roomID : string) : Boolean
     {
         return this.activeRooms.has(roomID);
     }
 
-    /**
-     * @Author Alex
-     * @param socketID Socket ID of a connected client
-     * @param roomID string ID of a room
-     * 
-     * Registers the connected client's socket ID and room
-     */
     public registerSocket(socketID : string, roomID : string)
     {
         this.socketToRoomMap.set(socketID, roomID);
     }
-    /**
-     * @Author Alex
-     * @param socketID Target socket ID to be removed from the socket-to-room-ID map
-     */
     private deregisterSocket(socketID : string)
     {
         this.socketToRoomMap.delete(socketID);
     }
 
-    /**
-     * @Author Alex
-     * 
-     * @param roomID Target room ID
-     * @returns Either a GameRoom object or null depending on if the target room exists
-     */
     public getRoom(roomID : string)
     {
         return this.activeRooms.get(roomID);
     }
-
-    /**
-     * @Author Alex
-     * @param socketID Socket ID of the client connected to the room being searched for
-     */
     public getRoomID(socketID : string)
     {
         return this.socketToRoomMap.get(socketID);
@@ -86,6 +63,9 @@ export class ServerUtil
 
     /**
      * @Author Roy
+     * 
+     * 
+     * 
      * @returns 6 character string to be used as a code for a room
      */
     public generateRoomCode(): string
@@ -93,10 +73,15 @@ export class ServerUtil
         // All possible characters that can be in a code
         const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
         let code = "";
-        for (let i = 0; i < 6; i++) // Generate 6 random characters from the string
+
+        // Generate a new code until an unused one is found
+        do
         {
-            code += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
+            for (let i = 0; i < 6; i++) // Generate 6 random characters from the string
+            {
+                code += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+        } while(this.isRoomActive(code))
         return code; // Return code as string
     }
 
