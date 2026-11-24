@@ -29,11 +29,12 @@ export const CluePhaseView: React.FC<CluePhaseViewProps> = ({
 
   const handleSubmitClue = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!clueInput.trim() || isSubmitting) return;
+    const trimmed = clueInput.trim();
+    if (!trimmed || isSubmitting) return;
 
     setIsSubmitting(true);
     socket.emit(SocketEvent.SUBMIT_CLUE, {
-      clueText: clueInput.trim(),
+      clueText: trimmed,
     });
 
     setClueInput("");
@@ -41,7 +42,7 @@ export const CluePhaseView: React.FC<CluePhaseViewProps> = ({
   };
 
   return (
-     /* Background */
+    /* Background */
     <main
       className="relative min-h-screen overflow-hidden bg-[#050b20] px-5 py-6 text-white"
       style={{
@@ -55,50 +56,69 @@ export const CluePhaseView: React.FC<CluePhaseViewProps> = ({
           radial-gradient(1px 1px at 85% 85%, white, transparent),
           radial-gradient(1px 1px at 10% 90%, white, transparent)
           `,
-          backgroundSize: "auto, auto, auto, 120px 120px, 160px 160px, 200px 200px, 140px 140px, 180px 180px",
+        backgroundSize:
+          "auto, auto, auto, 120px 120px, 160px 160px, 200px 200px, 140px 140px, 180px 180px",
       }}
     >
       {/* Header */}
       <div className="relative z-10 mx-auto max-w-6xl">
-          <header className="mb-7 flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <h1 className="bg-gradient-to-r from-green-400 via-cyan-300 to-purple-400 bg-clip-text text-3xl 
-              font-black tracking-wide text-transparent sm:text-4xl">
-                CHAMELEON PROTOCOL
-              </h1>
-              <h1 className="mt-1 text-sm tracking-[0.2em] text-slate-400">CLUE PHASE</h1>
-            </div>
-            <div className="rounded-xl border border-purple-300/30 bg-slate-900/70 px-5 py-3 text-right backdrop-blur-md">
-              <p className="text-xs tracking-widest text-purple-300">
-                Round {room.currentRound || 1} of {room.config.clueRounds}
-              </p>
-            </div>  
-          </header>
+        <header className="mb-7 flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h1
+              className="bg-gradient-to-r from-green-400 via-cyan-300 to-purple-400 bg-clip-text text-3xl 
+              font-black tracking-wide text-transparent sm:text-4xl"
+            >
+              CHAMELEON PROTOCOL
+            </h1>
+            <h1 className="mt-1 text-sm tracking-[0.2em] text-slate-400">
+              CLUE PHASE
+            </h1>
+          </div>
+          <div className="rounded-xl border border-purple-300/30 bg-slate-900/70 px-5 py-3 text-right backdrop-blur-md">
+            <p className="text-xs tracking-widest text-purple-300">
+              Round {room.currentRound || 1} of {room.config.clueRounds}
+            </p>
+          </div>
+        </header>
 
         {/* Game Information */}
 
         {/* Category */}
         <section className="mb-7 ">
           <div className="rounded-2xl border border-cyan-300/30 bg-slate-900/65 p-5 shadow-lg shadow-cyan-950/30 backdrop-blur-md">
-            <p className="text-xs font-bold tracking-[0.2em] text-cyan-300">Secret Category</p>
-            <h2 className="mt-2 text-2xl font-bold">{room.activeCategory || "Unknown"}</h2>
+            <p className="text-xs font-bold tracking-[0.2em] text-cyan-300">
+              Secret Category
+            </p>
+            <h2 className="mt-2 text-2xl font-bold">
+              {room.activeCategory || "Unknown"}
+            </h2>
             {role === Role.CHAMELEON ? (
-            <div>
-              <p className="mt-2 text-2xl text-purple-300">You are the Chameleon!! 🦎🕵️‍♂️</p>
-              <p className="mt-2 text-sm">You do not know the secret word. Blend in with a clever clue!</p>
-            </div>
-          ) : (
-            <div>
-              <p className="mt-2 text-sm text-slate-300">Secret Target Word:</p>
-              <p className="font-bold text-green-300">{secretWord || "Loading..."}</p>
-            </div>
-          )}
-          </div>          
+              <div>
+                <p className="mt-2 text-2xl text-purple-300">
+                  You are the Chameleon!! 🦎🕵️‍♂️
+                </p>
+                <p className="mt-2 text-sm">
+                  You do not know the secret word. Blend in with a clever clue!
+                </p>
+              </div>
+            ) : (
+              <div>
+                <p className="mt-2 text-sm text-slate-300">
+                  Secret Target Word:
+                </p>
+                <p className="font-bold text-green-300">
+                  {secretWord || "Loading..."}
+                </p>
+              </div>
+            )}
+          </div>
         </section>
         {/* Turns + Players */}
         <section>
           <div className="mb-7 rounded-2xl border border-purple-300/30 bg-slate-900/65 p-5 shadow-lg shadow-purple-950/30 backdrop-blur-md">
-            <h2 className="text-xs font-bold tracking-[0.2em] text-purple-300">Turn Order</h2>
+            <h2 className="text-xs font-bold tracking-[0.2em] text-purple-300">
+              Turn Order
+            </h2>
 
             <ul className="mt-2 text-2xl font-bold">
               {room.players.map((player) => {
@@ -113,7 +133,6 @@ export const CluePhaseView: React.FC<CluePhaseViewProps> = ({
                       🦎
                     </div>
                   </li>
-                  
                 );
               })}
             </ul>
@@ -122,35 +141,38 @@ export const CluePhaseView: React.FC<CluePhaseViewProps> = ({
         {/* Input + Submit */}
         <section className="grid items-start gap-5 md:grid-cols-2">
           <div className="mb-7 rounded-2xl border border-cyan-300/30 bg-slate-900/75 p-5 shadow-lg shadow-cyan-950/30 backdrop-blur-md">
-            <h2 className="text-lg font-bold tracking-[0.2em] text-green-500">Submit Your Clue</h2>
+            <h2 className="text-lg font-bold tracking-[0.2em] text-green-500">
+              Submit Your Clue
+            </h2>
             <p>
-            {isMyTurn
-              ? "It's your turn! Enter a single-word clue."
-              : "Waiting for the current player to submit their clue..."}
+              {isMyTurn
+                ? "It's your turn! Enter a single word (max 15 letters/numbers, no spaces or punctuation)."
+                : "Waiting for the current player to submit their clue..."}
             </p>
 
             {isMyTurn ? (
               <form onSubmit={handleSubmitClue}>
                 <input
                   type="text"
-                  maxLength={25}
+                  maxLength={15}
                   value={clueInput}
                   onChange={(e) => setClueInput(e.target.value)}
                   placeholder="Enter single word..."
                   autoFocus
                 />
 
-                <button 
-                className="mt-4 w-full rounded-lg bg-gradient-to-r from-cyan-400 to-blue-500 py-3 font-black 
+                <button
+                  className="mt-4 w-full rounded-lg bg-gradient-to-r from-cyan-400 to-blue-500 py-3 font-black 
                 tracking-wider text-slate-950 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
-                type="submit" 
-                disabled={!clueInput.trim() || isSubmitting}>
+                  type="submit"
+                  disabled={!clueInput.trim() || isSubmitting}
+                >
                   SUBMIT CLUE
                 </button>
               </form>
             ) : (
               <p>Input locked until your turn.</p>
-            )}  
+            )}
           </div>
           {/* Display Clues */}
           <div className="rounded-2xl border border-purple-300/30 bg-slate-900/75 p-5 shadow-lg shadow-purple-950/30 backdrop-blur-md">
@@ -158,14 +180,17 @@ export const CluePhaseView: React.FC<CluePhaseViewProps> = ({
               <>
                 <section>
                   <div className="mb-4 flex items-center justify-between">
-                    <h2 className="text-xs font-bold tracking-[0.2em] text-pink-300">Clues Log (Round {room.currentRound || 1})</h2>
+                    <h2 className="text-xs font-bold tracking-[0.2em] text-pink-300">
+                      Clues Log (Round {room.currentRound || 1})
+                    </h2>
                   </div>
-                  
+
                   <ul>
                     {room.clueMessages.map((msg, idx) => (
-                      <li 
-                      className="flex items-center justify-between gap-3 rounded-xl border border-white/5 bg-slate-950/60 px-4 py-3" 
-                      key={idx}>
+                      <li
+                        className="flex items-center justify-between gap-3 rounded-xl border border-white/5 bg-slate-950/60 px-4 py-3"
+                        key={idx}
+                      >
                         <p className="text-sm text-slate-200">
                           {msg.sender.username} (R{msg.roundNumber})
                         </p>
@@ -180,7 +205,6 @@ export const CluePhaseView: React.FC<CluePhaseViewProps> = ({
             )}
           </div>
         </section>
-
       </div>
     </main>
   );

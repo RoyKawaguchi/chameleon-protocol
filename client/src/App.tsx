@@ -37,8 +37,26 @@ export const App: React.FC = () => {
     socket.emit(SocketEvent.UPDATE_CONFIG, config);
   };
 
+  const toggleCategory = (categoryId: string) => {
+    socket.emit(SocketEvent.TOGGLE_CATEGORY, { categoryId });
+  };
+
+  const toggleCategoryItem = (categoryId: string, itemId: string) => {
+    socket.emit(SocketEvent.TOGGLE_CATEGORY_ITEM, { categoryId, itemId });
+  };
+
+  const saveCustomCategory = (categoryName: string, words: string[]) => {
+    socket.emit(SocketEvent.SAVE_CUSTOM_CATEGORY, { categoryName, words });
+  };
+
   const endDiscussion = () => {
     socket.emit(SocketEvent.END_DISCUSSION);
+  };
+
+  const returnToLobby = () => {
+    setPlayerRole(null);
+    setSecretWord(null);
+    socket.emit(SocketEvent.RETURN_TO_LOBBY);
   };
 
   useEffect(() => {
@@ -50,6 +68,10 @@ export const App: React.FC = () => {
           setPlayerRole(null);
           setSecretWord(null);
           return;
+        }
+        if (updatedPayload.gamePhase === GamePhase.LOBBY) {
+          setPlayerRole(null);
+          setSecretWord(null);
         }
         setRoomState(updatedPayload);
       },
@@ -63,6 +85,16 @@ export const App: React.FC = () => {
       },
     );
 
+    socket.on(SocketEvent.PLAYER_DISCONNECTED, (data: { message?: string }) => {
+      alert(
+        data?.message ||
+          "A player disconnected mid-game. Please refresh the page to start a new game.",
+      );
+      setRoomState(null);
+      setPlayerRole(null);
+      setSecretWord(null);
+    });
+
     socket.on(SocketEvent.ERROR_MESSAGE, (err: { message: string }) => {
       alert(err.message);
     });
@@ -70,6 +102,7 @@ export const App: React.FC = () => {
     return () => {
       socket.off(SocketEvent.ROOM_UPDATED);
       socket.off(SocketEvent.ROLE_ASSIGNED);
+      socket.off(SocketEvent.PLAYER_DISCONNECTED);
       socket.off(SocketEvent.ERROR_MESSAGE);
     };
   }, []);
@@ -89,6 +122,9 @@ export const App: React.FC = () => {
           isHost={isHost}
           onStartGame={startGame}
           onUpdateConfig={updateConfig}
+          onToggleCategory={toggleCategory}
+          onToggleCategoryItem={toggleCategoryItem}
+          onSaveCustomCategory={saveCustomCategory}
         />
       );
     case GamePhase.CLUE_PHASE:
@@ -114,8 +150,10 @@ export const App: React.FC = () => {
       return (
         <GameOverView
           room={roomState}
+          role={playerRole}
+          socketId={socket.id || ""}
           isHost={isHost}
-          onReturnToLobby={() => socket.emit(SocketEvent.RETURN_TO_LOBBY)}
+          onReturnToLobby={returnToLobby}
         />
       );
     default:

@@ -126,7 +126,7 @@ export class GameRoom {
   }
 
   /**
-- Creates or updates the room's single custom category (at least 1 valid word).
+   * Creates or updates the room's single custom category (at least 1 valid word).
    */
   public saveCustomCategory(categoryName: string, words: string[]): void {
     const trimmedName = categoryName.trim();

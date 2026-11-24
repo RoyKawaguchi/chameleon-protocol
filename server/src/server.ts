@@ -20,7 +20,7 @@ app.use(express.json());
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:5173", // Adjust for client URL in production
+    origin: "*", // Restrict to frontend URL later.
     methods: ["GET", "POST"],
   },
 });
@@ -401,8 +401,9 @@ io.on("connection", (socket) => {
   });
 });
 
-const PORT = process.env.PORT || 4000;
-server.listen(PORT, () => {
+const PORT = Number(process.env.PORT) || 4000;
+
+server.listen(PORT, "0.0.0.0", () => {
   console.log(`Chameleon Protocol server running on port ${PORT}`);
 });
 
