@@ -24,6 +24,10 @@ export class GameOverState extends GameState {
   }
 
   // Getters for broadcastState() in GameRoom
+  public getAccusedPlayer(): Player {
+    return this.accusedPlayer;
+  }
+
   public getWinningFaction(): "AGENTS" | "CHAMELEON" {
     return this.winningFaction;
   }
@@ -42,10 +46,7 @@ export class GameOverState extends GameState {
       this.winningFaction = "CHAMELEON";
       this.awaitingLastResortGuess = false;
       this.chameleonGuessResult = null;
-      return;
-    }
-
-    if (room.config.chameleonLastResort) {
+    } else if (room.config.chameleonLastResort) {
       // Chameleon was caught, and Last Resort is ON -> wait for Chameleon's secret word guess
       this.awaitingLastResortGuess = true;
       this.chameleonGuessResult = null;
@@ -56,6 +57,8 @@ export class GameOverState extends GameState {
       this.chameleonGuessResult = null;
       this.winningFaction = "AGENTS";
     }
+
+    room.broadcastState();
   }
 
   public handleAction(
