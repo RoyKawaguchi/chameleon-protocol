@@ -13,10 +13,10 @@ import { GameOverState } from "./GameOverState";
 import { GamePhase, SocketEvent } from "../../models/types";
 
 export class VotingState extends GameState {
-  private votes: Map<string, string> = new Map(); // voterSocketId -> targetSocketId
-  private accusedPlayer: Player | null;
-  private revoteActive: boolean = false;
-  private tiedPlayers: Array<{ socketId: string; username: string }> = [];
+  protected votes: Map<string, string> = new Map(); // voterSocketId -> targetSocketId
+  protected accusedPlayer: Player | null;
+  protected revoteActive: boolean = false;
+  protected tiedPlayers: Array<{ socketId: string; username: string }> = [];
 
   constructor() {
     super();
@@ -86,7 +86,7 @@ export class VotingState extends GameState {
     }
   }
 
-  private processVotes(room: GameRoom): void {
+  protected processVotes(room: GameRoom): void {
     const voteCounts = new Map<string, number>();
     for (const targetSocketId of this.votes.values()) {
       voteCounts.set(targetSocketId, (voteCounts.get(targetSocketId) || 0) + 1);

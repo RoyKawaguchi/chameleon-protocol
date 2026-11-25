@@ -8,6 +8,9 @@ import { Testing } from "./Testing";
 import { CluesPhaseTest } from "./testing states/CluePhaseTest";
 import { ClueMessage } from "../models/Message";
 import { DiscussionState } from "../game/states/DiscussionState";
+import { VotingState } from "../game/states/VotingState";
+import { GameOverState } from "../game/states/GameOverState";
+import { VotingTest } from "./testing states/VotingTest";
 // import { DiscussionState } from "../game/states/DiscussionState";
 // import { VotingState } from "../game/states/VotingState";
 // import { GameOverState } from "../game/states/GameOverState";
@@ -29,7 +32,7 @@ describe("Chameleon Protocol - Game State Tests", () =>
         {
             for(let i = 0; i < Testing.numTests; i++)
             {
-                const dummyRoom = Testing.createDummyRoom(4);
+                const dummyRoom = Testing.createDummyRoom(4, () => {});
 
                 dummyRoom.currentState.transitionNext(dummyRoom);
 
@@ -66,7 +69,7 @@ describe("Chameleon Protocol - Game State Tests", () =>
         describe("Clue State Tests", () => 
             {
                 // Dummy Room for external tests
-                const dummyRoom = Testing.createDummyRoom(4);
+                const dummyRoom = Testing.createDummyRoom(4, () => {});
                 dummyRoom.currentState.transitionNext(dummyRoom);
 
                 describe("Clue State validateRound() Tests", () => 
@@ -157,6 +160,52 @@ describe("Chameleon Protocol - Game State Tests", () =>
 
     describe("Discussion State Tests", () =>
     {
-        
+        let dummyRoom = Testing.createDummyRoom(4, () => {});
+        dummyRoom.currentState.transitionNext(dummyRoom); // Lobby to Clue
+        dummyRoom.currentState.transitionNext(dummyRoom); // Clue to Discussion
+
+        it("Transition to Voting State", () =>
+        {
+            dummyRoom.currentState.transitionNext(dummyRoom);
+
+            expect(dummyRoom.currentState instanceof VotingState).toBe(true);
+        })
     })    
+
+    describe("Voting State Tests", () =>
+    {
+        let dummyRoom = Testing.createDummyRoom(4, () => {});
+
+        dummyRoom.currentState.transitionNext(dummyRoom); // Lobby to Clue
+        dummyRoom.currentState.transitionNext(dummyRoom); // Clue to Discussion
+        dummyRoom.currentState.transitionNext(dummyRoom); // Discussion to Voting
+
+        it("Transition to Game Over State", () =>
+        {
+            dummyRoom.currentState.transitionNext(dummyRoom);
+
+            expect(dummyRoom.currentState instanceof GameOverState).toBe(true);
+        })
+
+        let dummyVotingState = new VotingTest();
+
+        it("processVotes() tests", () =>
+        {
+            
+        })
+    })
+
+    describe("Game Over State Tests", () =>
+    {
+        let dummyRoom = Testing.createDummyRoom(4, () => {});
+
+        dummyRoom.currentState.transitionNext(dummyRoom); // Lobby to Clue
+        dummyRoom.currentState.transitionNext(dummyRoom); // Clue to Discussion
+        dummyRoom.currentState.transitionNext(dummyRoom); // Discussion to Voting
+        dummyRoom.currentState.transitionNext(dummyRoom); // Voting to GameOver
+        it("Transition to Lobby State", () =>
+        {
+            expect(dummyRoom.currentState instanceof LobbyState).toBe(true);
+        })
+    })
 })
