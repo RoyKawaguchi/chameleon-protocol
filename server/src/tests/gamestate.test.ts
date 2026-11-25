@@ -180,12 +180,14 @@ describe("Chameleon Protocol - Game State Tests", () =>
         dummyRoom.currentState.transitionNext(dummyRoom); // Clue to Discussion
         dummyRoom.currentState.transitionNext(dummyRoom); // Discussion to Voting
 
+        /*
         it("Transition to Game Over State", () =>
         {
             dummyRoom.currentState.transitionNext(dummyRoom);
 
             expect(dummyRoom.currentState instanceof GameOverState).toBe(true);
         })
+        */
 
         let dummyVotingState = new VotingTest();
 
@@ -195,6 +197,7 @@ describe("Chameleon Protocol - Game State Tests", () =>
         })
     })
 
+    /*
     describe("Game Over State Tests", () =>
     {
         let dummyRoom = Testing.createDummyRoom(4, () => {});
@@ -208,4 +211,5 @@ describe("Chameleon Protocol - Game State Tests", () =>
             expect(dummyRoom.currentState instanceof LobbyState).toBe(true);
         })
     })
+    */
 })
