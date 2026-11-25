@@ -1,5 +1,6 @@
 import { GameRoom } from "./game/GameRoom";
 import { Player } from "./models/Player";
+import { GamePhase, SocketEvent } from "./models/types";
 
 /**
  * @Author Alex
@@ -10,8 +11,9 @@ export class ServerUtil
 {
     private activeRooms = new Map<string, GameRoom>();
     private socketToRoomMap = new Map<string, string>();
+    private emit: (target: string, event: string, payload: any) => void;
 
-    constructor(){}
+    constructor(emit: (target: string, event: string, payload: any) => void){this.emit = emit;}
 
     public getRoomMapSize() : number
     {
@@ -118,9 +120,12 @@ export class ServerUtil
     /**
      * @Author Roy, Alex
      * @param socketID Socket ID of disconnected player
+     * 
+     * @returns a tuple containing a boolean on if the game was stopped mid-match and an array of socketID keys of the remaining players
      */
     public removePlayer(socketID : string)
     {
+
         const roomID = this.getRoomID(socketID);
         if(!roomID) return; // No action needed if client was not mapped to a room
 
@@ -135,6 +140,8 @@ export class ServerUtil
 
             if (!targetRoom || !targetPlayer) return; // Verify the targets are not empty (keeps TypeScript happy)
 
+            const wasInGame = targetRoom.currentState.gamePhase !== GamePhase.LOBBY;
+
             targetRoom?.removePlayer(socketID); // Delete the player object in the room
 
             // If the room is empty, delete it.
@@ -145,17 +152,38 @@ export class ServerUtil
                 return;
             }
 
+            if (wasInGame)
+            {
+                this.emit(roomID, SocketEvent.PLAYER_DISCONNECTED, 
+                    {
+                        username: targetPlayer.username,
+                        message: targetPlayer.username + ' disconnected mid-game. Please refresh the page to start a new game.',
+                    }
+                )
+                for (const remainingSocketId of targetRoom.players.keys())
+                {
+                    this.deregisterSocket(remainingSocketId);
+                }
+            }
+
             // TODO: If the host is disconnected, assign host to the next available player
             if (targetPlayer.isHost && targetRoom.players.size > 0)
             {
                 // Without this, if the host leaves the remaining players are soft-locked in the lobby.
+                const nextHost = targetRoom.players.values().next().value;
+                if(nextHost)
+                {
+                    nextHost.isHost = true;
+                }
             }
 
             targetRoom.broadcastState(); // Send all clients the updated room information
+            return;
         }
         catch(error)
         {
             console.error(`[Error] Failed handling disconnect for socket ${socketID}:`, error)
+            return;
         }
     }
 }
