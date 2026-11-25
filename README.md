@@ -1,121 +1,147 @@
 # Chameleon Protocol
 
-A lightweight, real-time multiplayer web application centered on word association and social deduction mechanics.
+Multiplayer web game for word association and social deduction.
 
-## Team Members
+## Team
 
 - Alex
 - Devona
 - Roy
 
-## Tech Stack
+## Stack
 
-- **Frontend:** React, TypeScript, Tailwind CSS, Vite, Socket.IO Client
-- **Backend:** Node.js, Express, Socket.IO, TypeScript
-- **Testing:** Jest and ts-jest
+- **Client:** React, TypeScript, Tailwind CSS, Vite, Socket.IO Client
+- **Server:** Node.js, Express, Socket.IO, TypeScript
+- **Tests:** Jest, ts-jest
 
-## Project Architecture
+## File Structure
 
-- `/client` — Frontend user interface and Socket.IO client
-- `/server` — Backend server, game models, state machine, and Socket.IO connections
-- `/server/src/models` — Game entities such as `GameRoom` and `Player`
-- `/server/src/states` — Game state definitions and transition behavior
-- `/server/src/tests` — Backend unit tests
+text
 
-## Prerequisites
+```text
+chameleon-protocol/
+├── client/
+│   └── src/
+│       ├── App.css
+│       ├── App.tsx
+│       ├── assets/
+│       │   ├── hero.png
+│       │   ├── react.svg
+│       │   └── vite.svg
+│       ├── components/
+│       │   ├── CluePhaseView.tsx
+│       │   ├── DiscussionView.tsx
+│       │   ├── GameOverView.tsx
+│       │   ├── LobbyView.tsx
+│       │   ├── LoginForm.tsx
+│       │   └── VotingView.tsx
+│       ├── index.css
+│       ├── main.tsx
+│       ├── models/
+│       │   └── types.ts
+│       └── services/
+│           └── socket.ts
+└── server/
+    └── src/
+        ├── game/
+        │   ├── GameRoom.ts
+        │   └── states/
+        │       ├── CluePhaseState.ts
+        │       ├── DiscussionState.ts
+        │       ├── GameOverState.ts
+        │       ├── GameState.ts
+        │       ├── LobbyState.ts
+        │       └── VotingState.ts
+        ├── models/
+        │   ├── Message.ts
+        │   ├── Player.ts
+        │   └── types.ts
+        ├── server.ts
+        └── tests/
+            ├── Testing.ts
+            ├── example.test.ts
+            ├── gameroom.test.ts
+            └── gamestate.test.ts
+```
 
-Install the following before starting:
+### File Descriptions
 
-- Node.js 24 LTS
-- npm (included with Node.js)
+- `client/src/App.tsx`: Root view and socket event handler.
+- `client/src/components/`: UI screens for login, lobby, clues, discussion, voting, and game over.
+- `client/src/models/types.ts`: Client type definitions.
+- `client/src/services/socket.ts`: Socket.IO client setup.
+- `server/src/server.ts`: Express and Socket.IO server entry point.
+- `server/src/game/GameRoom.ts`: Room state, players, and game loop coordinator.
+- `server/src/game/states/`: State classes for each game phase.
+- `server/src/models/`: Data models for players, messages, and types.
+- `server/src/tests/`: Jest unit tests.
 
-Then, verify your installation:
+## Installation
+
+Install Git, Node.js 24 LTS, and npm.
+
+No `.env` file is needed.
+
+### Check Versions
+
+bash
 
 ```bash
 node -v
 npm -v
 ```
 
-> **Note:** Use Node.js 24 for this project to keep the team's development environment consistent.
+### Clone the Repository
 
-## Unfinished features, known issues, and to be implemented
-
-# Config:
-
-- Implement backend (LobbyState.ts) to respond to config changes
-
-- Chat feature in Discussion state (unfinished)
-- Countdown Timer not visibly counting down (known issue)
-
-- Chameleon Last Chance (to be implemented)
-
-## Getting Started
-
-### 1. Clone the Repository
+bash
 
 ```bash
 git clone https://github.com/RoyKawaguchi/chameleon-protocol
 cd chameleon-protocol
 ```
 
-### 2. Install Dependencies
+### Install Dependencies
 
-From the project root, run:
+Install dependencies from the root:
+
+bash
 
 ```bash
 npm run setup
 ```
 
-This installs the dependencies for both the frontend and backend using their respective `package-lock.json` files.
+## Running
 
-You only need to run this again when setting up a fresh environment or after dependency changes.
+### Start the Server
 
-### 3. Start the Backend
+Start the server on `localhost:4000`:
 
-Open a terminal at the project root:
+bash
 
 ```bash
 cd server
 npm run dev
 ```
 
-The backend should run at localhost 3000.
+### Start the Client
 
-### 4. Start the Frontend
+Start the client in a second terminal:
 
-Open a second terminal at the project root:
+bash
 
 ```bash
 cd client
 npm run dev
 ```
 
-Open the URL (shown by the terminal) in your browser to view the page.
+Open the URL from the client terminal in a browser.
 
-### 5. Run the Backend Tests
+## Commands
 
-From the project root:
-
-```bash
-cd server
-npm test
-```
-
-### 6. Build the Frontend
-
-From the project root:
-
-```bash
-cd client
-npm run build
-```
-
-## Useful Commands
-
-| Command                      | Purpose                                              |
-| ---------------------------- | ---------------------------------------------------- |
-| `npm run setup`              | Install client and server dependencies from the root |
-| `cd client && npm run dev`   | Start the frontend development server                |
-| `cd server && npm run dev`   | Start the backend development server                 |
-| `cd server && npm test`      | Run backend tests                                    |
-| `cd client && npm run build` | Type-check and build the frontend                    |
+| Command                      | Action                                 |
+| ---------------------------- | -------------------------------------- |
+| `npm run setup`              | Install client and server dependencies |
+| `cd server && npm run dev`   | Run server on port 4000                |
+| `cd client && npm run dev`   | Run client dev server                  |
+| `cd server && npm test`      | Run server tests                       |
+| `cd client && npm run build` | Build client                           |
