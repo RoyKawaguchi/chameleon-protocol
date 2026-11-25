@@ -56,13 +56,13 @@ export class ClueMessage extends PlayerMessage {
    * 
    * @param content String to be validated
    */
-  private validateClueContent(content: string): void {
+  protected validateClueContent(content: string): void {
     if (!content || content.trim().length === 0) {
       throw new Error("Clue cannot be empty.");
     }
 
-    if (content.length > 15) {
-      throw new Error("Clue must be 15 characters or fewer.");
+    if (content.length > 15 || content.length < 1) {
+      throw new Error("Clue must be between 1 and 15 characters long.");
     }
 
     if (/\s/.test(content)) {
