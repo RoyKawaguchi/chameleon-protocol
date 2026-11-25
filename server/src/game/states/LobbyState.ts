@@ -188,11 +188,6 @@ export class LobbyState extends GameState {
     if (event === SocketEvent.START_GAME) {
       this.transitionNext(room);
     }
-
-    // Invalid action
-    room.sendPrivate(player.socketId, SocketEvent.ERROR_MESSAGE, {
-      message: "Invalid action received during the Lobby Phase.",
-    });
   }
 
   /**
