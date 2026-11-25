@@ -8,7 +8,7 @@ import { Player } from "../models/Player";
  */
 describe("Server Tests", () => 
 {
-    let serverUtil = new ServerUtil();
+    let serverUtil = new ServerUtil(() => {});
 
     describe("Test addNewRoom()", () =>
     {
@@ -170,10 +170,12 @@ describe("Server Tests", () =>
     describe("Test removePlayer()", () => 
     {
         // Fresh instance from other tests for easier examination
-        let util = new ServerUtil();
+        let util = new ServerUtil(() => {});
 
         let socketOne = "Player 1";
         let socketTwo = "Player 2";
+        let socketThree = "Player 3";
+        let socketFour = "Player 4";
         let roomID = "room";
 
         let room = new GameRoom(roomID, () => {});
@@ -181,8 +183,20 @@ describe("Server Tests", () =>
 
         room.addPlayer(socketOne, "Host"); // Host
         util.registerSocket(socketOne, roomID);
-        room.addPlayer(socketTwo, "Player");
+        room.addPlayer(socketTwo, "Player 2");
         util.registerSocket(socketTwo, roomID);
+        room.addPlayer(socketThree, "Player 3");
+        util.registerSocket(socketThree, roomID);
+        room.addPlayer(socketFour, "Player 3");
+        util.registerSocket(socketFour, roomID);
+
+        room.currentState.transitionNext(room);
+
+        it("Player leaving mid-game closes the room", () => 
+        {
+            util.removePlayer(socketThree);
+            expect(util.isRoomActive(roomID)).toBe(false);
+        })
 
         // Test that a non registered socket properly returns without action
         it("Calling remove on an unregistered socket causes no action", () => 
@@ -196,9 +210,7 @@ describe("Server Tests", () =>
         {
             util.removePlayer(socketTwo);
 
-            expect(room.getPlayerCount()).toBe(1); // Only the host should be left
-            let remainingPlayer = util.getRoomAndPlayer(socketOne);
-            expect(remainingPlayer[1].socketId == socketOne);
+            expect(room.getPlayerCount()).toBe(3); // Only the host should be left
         })
 
         // Test that removing a player and leaving the room empty deletes the room

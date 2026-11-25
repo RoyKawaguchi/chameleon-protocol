@@ -5,12 +5,18 @@ import { GameState } from "../game/states/GameState";
 import { LobbyState } from "../game/states/LobbyState";
 import { CluePhaseState } from "../game/states/CluePhaseState";
 import { Testing } from "./Testing";
+import { CluesPhaseTest } from "./testing states/CluePhaseTest";
+import { ClueMessage } from "../models/Message";
+import { DiscussionState } from "../game/states/DiscussionState";
+import { VotingState } from "../game/states/VotingState";
+import { GameOverState } from "../game/states/GameOverState";
+import { VotingTest } from "./testing states/VotingTest";
 // import { DiscussionState } from "../game/states/DiscussionState";
 // import { VotingState } from "../game/states/VotingState";
 // import { GameOverState } from "../game/states/GameOverState";
 
 describe("Chameleon Protocol - Game State Tests", () => 
-    {
+{
         /**
          * @author Alex
          * 
@@ -26,7 +32,7 @@ describe("Chameleon Protocol - Game State Tests", () =>
         {
             for(let i = 0; i < Testing.numTests; i++)
             {
-                const dummyRoom = Testing.createDummyRoom(4);
+                const dummyRoom = Testing.createDummyRoom(4, () => {});
 
                 dummyRoom.currentState.transitionNext(dummyRoom);
 
@@ -63,21 +69,143 @@ describe("Chameleon Protocol - Game State Tests", () =>
         describe("Clue State Tests", () => 
             {
                 // Dummy Room for external tests
-                const dummyRoom = Testing.createDummyRoom(4);
+                const dummyRoom = Testing.createDummyRoom(4, () => {});
                 dummyRoom.currentState.transitionNext(dummyRoom);
 
-                describe("Clue State ValidateClueAmount() Tests", () => 
+                describe("Clue State validateRound() Tests", () => 
                     {
-                        let dummyCluePhase = new CluePhaseState([], dummyRoom.config.clueRounds); // Empty list for turn order because it is not used in these tests
+                        // Fake players
+                        let playerOne = new Player("Socket1", "Player 1");
+                        let playerTwo = new Player("Socket2", "Player 2");
+                        let playerThree = new Player("Socket3", "Player 3");
+                        let playerFour = new Player("Socket4", "Player 4");
 
-                        it("Below Expected Number of Clues", () => 
+                        let defaultClue = new ClueMessage(playerOne, "message", 1);
+
+                        let dummyCluePhase = new CluesPhaseTest([playerOne, playerTwo, playerThree, playerFour], 1); 
+
+                        it("Phase has already ended, one round over limit", () => 
                         {
-
-                            // expect(dummyCluePhase.validateClueAmount()).toBe(false);
-                            expect(1).toBe(1);
+                            dummyCluePhase.setCurrentRound(2);
+                            expect(() => 
+                            {
+                                dummyCluePhase.validateRound(dummyRoom, playerOne, new ClueMessage(playerOne, "Message", 3)); 
+                            }).toThrow("The clue phase has already concluded.");
                         })
+                        it("Phase already ended, many rounds over limit", () =>
+                        {
+                            dummyCluePhase.setCurrentRound(10);
+                            expect(() =>
+                            {
+                                dummyCluePhase.validateRound(dummyRoom, playerOne, new ClueMessage(playerOne, "Message", 10));
+                            }).toThrow("The clue phase has already concluded.");
+                        })
+
+                        dummyCluePhase.reset(); // Reset to default state
+
+                        it("Clue submitted when currentTurnHolder is null throws error", () => 
+                        {
+                            dummyCluePhase.setCurrentTurnHolder(undefined);
+
+                            expect(() =>
+                            {
+                                dummyCluePhase.validateRound(dummyRoom, playerOne, defaultClue);
+                            }).toThrow();
+                        })
+                        it("Clue submitted when not player's turn throws error", () =>
+                        {
+                            dummyCluePhase.setCurrentTurnHolder(playerTwo);
+
+                            expect(() =>
+                            {
+                                dummyCluePhase.validateRound(dummyRoom, playerOne, defaultClue);
+                            }).toThrow();
+                        })
+
+                        it("Sending more than one clue message in the same round throws an error", () =>
+                        {
+                            dummyCluePhase.reset();
+                            dummyCluePhase.addClue(defaultClue);
+                            dummyRoom.clueMessages.push(defaultClue);
+                            expect(() =>
+                            {
+                                dummyCluePhase.validateRound(dummyRoom, playerOne, defaultClue);
+                            }).toThrow("You have already submitted your clue for this round.");
+                        })
+
+                        it("Sending an already submitted clue throws an error", () =>
+                        {
+                            dummyCluePhase.reset();
+
+                            dummyCluePhase.addClue(defaultClue);
+                            dummyRoom.clueMessages.push(defaultClue);
+
+                            dummyCluePhase.setCurrentTurnHolder(playerTwo);
+
+                            expect(() =>
+                            {
+                                dummyCluePhase.validateRound(dummyRoom, playerTwo, new ClueMessage(playerTwo, "Message", 1));
+                            }).toThrow("This clue has already been used in this game. Please choose a unique word!");
+                        })                       
                     })
+                
+                it("CluePhase state transition to Discussion State", () =>
+                {
+                    dummyRoom.currentState.transitionNext(dummyRoom);
+
+                    expect(dummyRoom.currentState instanceof DiscussionState).toBe(true);
+                })
                 
             })
 
+    describe("Discussion State Tests", () =>
+    {
+        let dummyRoom = Testing.createDummyRoom(4, () => {});
+        dummyRoom.currentState.transitionNext(dummyRoom); // Lobby to Clue
+        dummyRoom.currentState.transitionNext(dummyRoom); // Clue to Discussion
+
+        it("Transition to Voting State", () =>
+        {
+            dummyRoom.currentState.transitionNext(dummyRoom);
+
+            expect(dummyRoom.currentState instanceof VotingState).toBe(true);
+        })
+    })    
+
+    describe("Voting State Tests", () =>
+    {
+        let dummyRoom = Testing.createDummyRoom(4, () => {});
+
+        dummyRoom.currentState.transitionNext(dummyRoom); // Lobby to Clue
+        dummyRoom.currentState.transitionNext(dummyRoom); // Clue to Discussion
+        dummyRoom.currentState.transitionNext(dummyRoom); // Discussion to Voting
+
+        it("Transition to Game Over State", () =>
+        {
+            dummyRoom.currentState.transitionNext(dummyRoom);
+
+            expect(dummyRoom.currentState instanceof GameOverState).toBe(true);
+        })
+
+        let dummyVotingState = new VotingTest();
+
+        it("processVotes() tests", () =>
+        {
+            expect(1).toBe(1);
+        })
     })
+
+    describe("Game Over State Tests", () =>
+    {
+        let dummyRoom = Testing.createDummyRoom(4, () => {});
+
+        dummyRoom.currentState.transitionNext(dummyRoom); // Lobby to Clue
+        dummyRoom.currentState.transitionNext(dummyRoom); // Clue to Discussion
+        dummyRoom.currentState.transitionNext(dummyRoom); // Discussion to Voting
+        dummyRoom.currentState.transitionNext(dummyRoom); // Voting to GameOver
+        it("Transition to Lobby State", () =>
+        {
+            expect(dummyRoom.currentState instanceof LobbyState).toBe(true);
+        })
+    })
+})

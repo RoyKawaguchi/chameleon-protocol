@@ -13,10 +13,10 @@ import { GamePhase, SocketEvent } from "../../models/types";
  * Allows players to change their vote until all players have submitted.
  */
 export class VotingState extends GameState {
-  private votes: Map<string, string> = new Map(); // voterSocketId -> targetSocketId
-  private accusedPlayer: Player | null;
-  private revoteActive: boolean = false; // whether we will have a revote next
-  private tiedPlayers: Array<{ socketId: string; username: string }> = [];
+  protected votes: Map<string, string> = new Map(); // voterSocketId -> targetSocketId
+  protected accusedPlayer: Player | null;
+  protected revoteActive: boolean = false;// whether we will have a revote next
+  protected tiedPlayers: Array<{ socketId: string; username: string }> = [];
 
   /**
    * Constructor of the VotingState
@@ -110,7 +110,7 @@ export class VotingState extends GameState {
    * @param room GameRoom object
    * @returns void
    */
-  private processVotes(room: GameRoom): void {
+  protected processVotes(room: GameRoom): void {
     // Map of Socket ID -> Vote count
     const voteCounts = new Map<string, number>();
 

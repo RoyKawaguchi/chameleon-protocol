@@ -25,10 +25,10 @@ export class Testing
      * @param numPlayers 
      * @returns A GameRoom Object initialized with dummy players equal to the numPlayers param
      */
-    public static createDummyRoom(numPlayers : number) : GameRoom
+    public static createDummyRoom(numPlayers : number, emit: (target: string, event: string, payload: any) => void) : GameRoom
     {
         const roomId = Math.floor(Math.random() * 9999); // Generate random room ID (Just number between 0 and 9999)
-        const newRoom = new GameRoom(roomId.toString(), () => {});
+        const newRoom = new GameRoom(roomId.toString(), emit);
 
         const playerList: string[] = [];
 

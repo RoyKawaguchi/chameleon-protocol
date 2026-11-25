@@ -12,11 +12,11 @@ import { SocketEvent } from "../../models/types";
  * Only accepts clues in established player order.
  */
 export class CluePhaseState extends GameState {
-  private readonly playerOrder: readonly Player[];
-  private currentRound: number;
-  private currentTurnHolder: Player | undefined;
-  private readonly clueRoundLimit: number;
-  private submittedClueTexts: Set<string> = new Set(); // Tracks lowercase clues to prevent duplicates across the game
+  protected readonly playerOrder: readonly Player[];
+  protected currentRound: number;
+  protected currentTurnHolder: Player | undefined;
+  protected readonly clueRoundLimit: number;
+  protected submittedClueTexts: Set<string> = new Set(); // Tracks lowercase clues to prevent duplicates across the game
 
   /**
    * Constructor of CluePhaseState.
@@ -122,7 +122,7 @@ export class CluePhaseState extends GameState {
    * @param player Player object of the sender
    * @param clueMsg ClueMessage object
    */
-  private validateRound(
+  protected validateRound(
     room: GameRoom,
     player: Player,
     clueMsg: ClueMessage,
