@@ -8,7 +8,7 @@
 
 import React, { useState, useEffect } from "react";
 import { socket } from "../services/socket";
-import { Role, RoomStatePayload } from "../models/types";
+import { Role, RoomStatePayload, SocketEvent } from "../models/types";
 
 interface DiscussionViewProps {
   room: RoomStatePayload;
@@ -162,7 +162,7 @@ export const DiscussionView: React.FC<DiscussionViewProps> = ({
               </p>
               {role === Role.CHAMELEON ? (
                 <p className="mt-1 text-lg font-bold text-purple-300">
-                  Chameleon — Secret word is hidden. Blend in!
+                  Chameleon — Blend in!
                 </p>
               ) : role === Role.AGENT ? (
                 <p className="mt-1 text-lg font-bold text-green-300">

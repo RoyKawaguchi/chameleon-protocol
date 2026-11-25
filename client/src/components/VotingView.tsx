@@ -165,7 +165,6 @@ export const VotingView: React.FC<VotingViewProps> = ({
               <button
                 key={player.socketId}
                 type="button"
-                disabled={isCurrentPlayer}
                 onClick={() => setSelectedPlayerId(player.socketId)}
                 className={`group flex flex-col items-center justify-center gap-3 rounded-2xl border p-6 transition-all duration-200 ${
                   isSelected
