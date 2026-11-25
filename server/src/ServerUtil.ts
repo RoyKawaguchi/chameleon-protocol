@@ -164,6 +164,7 @@ export class ServerUtil
                 {
                     this.deregisterSocket(remainingSocketId);
                 }
+                this.removeRoom(roomID);
             }
 
             // TODO: If the host is disconnected, assign host to the next available player
