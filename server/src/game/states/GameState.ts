@@ -15,7 +15,7 @@ export abstract class GameState {
     room: GameRoom,
     player: Player,
     event: SocketEvent,
-    payload: any
+    payload: any,
   ): void;
 
   /**

@@ -1,6 +1,6 @@
 /**
- * Shared enums used across the server and mirrored on the client
- * to ensure type-safe event payloads.
+- Shared enums used across the server and mirrored on the client
+- to ensure type-safe event payloads.
  */
 
 export enum Role {
@@ -16,9 +16,18 @@ export enum GamePhase {
   GAME_OVER = "GAME_OVER",
 }
 
+export interface CategoryItem {
+  id: string;
+  word: string;
+  enabled: boolean;
+}
+
 export interface CategoryPool {
+  id: string;
   categoryName: string;
-  categories: string[];
+  enabled: boolean;
+  isCustom?: boolean;
+  items: CategoryItem[];
 }
 
 export interface GameConfig {
@@ -39,11 +48,15 @@ export enum SocketEvent {
   LAST_RESORT_GUESS = "last_resort_guess",
   RETURN_TO_LOBBY = "return_to_lobby",
   UPDATE_CONFIG = "update_config",
+  TOGGLE_CATEGORY = "toggle_category",
+  TOGGLE_CATEGORY_ITEM = "toggle_category_item",
+  SAVE_CUSTOM_CATEGORY = "save_custom_category",
 
   // Server -> Client Broadcasts
   ROOM_UPDATED = "room_updated",
   ROLE_ASSIGNED = "role_assigned",
   ERROR_MESSAGE = "error_message",
+  PLAYER_DISCONNECTED = "player_disconnected",
 }
 
 export interface CreateRoomPayload {
@@ -71,20 +84,41 @@ export interface LastResortGuessPayload {
   guess: string;
 }
 
+export interface ToggleCategoryPayload {
+  categoryId: string;
+}
+
+export interface ToggleCategoryItemPayload {
+  categoryId: string;
+  itemId: string;
+}
+
+export interface SaveCustomCategoryPayload {
+  categoryName: string;
+  words: string[];
+}
+
 // Server -> Client Payload (The Room State Snapshot)
 export interface RoomStatePayload {
   roomId: string;
   gamePhase: GamePhase;
   players: PlayerDto[];
   config: GameConfig;
+  categories: CategoryPool[];
   activeCategory: string | null;
+  activeCategoryWords?: string[];
+  secretWord?: string | null;
   currentRound?: number;
   timerEndsAt?: number | null;
   currentTurnHolderSocketId?: string | null;
   votesSubmitted?: number;
+  isRevote?: boolean;
+  tiedPlayers?: Array<{ socketId: string; username: string }>;
   winningFaction?: "AGENTS" | "CHAMELEON" | null;
   awaitingLastResortGuess?: boolean;
   chameleonGuessResult?: boolean | null;
+  accusedPlayer?: { socketId: string; username: string } | null;
+  chameleonPlayer?: { socketId: string; username: string } | null;
   clueMessages?: Array<{
     sender: { socketId: string; username: string };
     content: string;

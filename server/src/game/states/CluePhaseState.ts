@@ -31,7 +31,7 @@ export class CluePhaseState extends GameState {
     room: GameRoom,
     player: Player,
     event: SocketEvent,
-    payload: any
+    payload: any,
   ): void {
     if (event != SocketEvent.SUBMIT_CLUE) {
       room.sendPrivate(player.socketId, SocketEvent.ERROR_MESSAGE, {
@@ -50,7 +50,7 @@ export class CluePhaseState extends GameState {
       const clueMsg = new ClueMessage(
         player,
         trimmedClueText,
-        this.currentRound
+        this.currentRound,
       );
 
       // Validate using room as the single source of truth for clues
@@ -62,7 +62,7 @@ export class CluePhaseState extends GameState {
 
       // Check how many players have submitted a clue in the current round
       const cluesInCurrentRound = room.clueMessages.filter(
-        (c) => c.roundNumber === this.currentRound
+        (c) => c.roundNumber === this.currentRound,
       ).length;
 
       // Determine if every player has finished their turn for this round
@@ -76,7 +76,7 @@ export class CluePhaseState extends GameState {
         }
       } else {
         const currentIndex = this.playerOrder.findIndex(
-          (p) => p.socketId === player.socketId
+          (p) => p.socketId === player.socketId,
         );
         if (currentIndex !== -1 && currentIndex + 1 < this.playerOrder.length) {
           this.currentTurnHolder = this.playerOrder[currentIndex + 1];
@@ -98,7 +98,7 @@ export class CluePhaseState extends GameState {
   private validateRound(
     room: GameRoom,
     player: Player,
-    clueMsg: ClueMessage
+    clueMsg: ClueMessage,
   ): void {
     if (this.currentRound > this.clueRoundLimit) {
       throw new Error("The clue phase has already concluded.");
@@ -111,14 +111,14 @@ export class CluePhaseState extends GameState {
       throw new Error(
         `It is not your turn. Waiting for ${
           this.currentTurnHolder?.username || "the next player"
-        }.`
+        }.`,
       );
     }
 
     const alreadySubmittedThisRound = room.clueMessages.some(
       (c) =>
         c.roundNumber === this.currentRound &&
-        c.sender.socketId === player.socketId
+        c.sender.socketId === player.socketId,
     );
     if (alreadySubmittedThisRound) {
       throw new Error("You have already submitted your clue for this round.");
@@ -128,12 +128,12 @@ export class CluePhaseState extends GameState {
 
     if (this.submittedClueTexts.has(normalizedClue)) {
       throw new Error(
-        "This clue has already been used in this game. Please choose a unique word!"
+        "This clue has already been used in this game. Please choose a unique word!",
       );
     }
 
-    if (clueMsg.content.length === 0 || clueMsg.content.length > 25) {
-      throw new Error("Clue must be between 1 and 25 characters long.");
+    if (clueMsg.content.length === 0 || clueMsg.content.length > 15) {
+      throw new Error("Clue must be between 1 and 15 characters long.");
     }
   }
 
