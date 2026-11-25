@@ -6,12 +6,14 @@
 - - Host controls: "Cut Short" and "+1 Min Extension".
  */
 
-import React, { useState, useEffect} from "react";
+import React, { useState, useEffect } from "react";
 import { socket } from "../services/socket";
-import { RoomStatePayload, SocketEvent } from "../models/types";
+import { Role, RoomStatePayload } from "../models/types";
 
 interface DiscussionViewProps {
   room: RoomStatePayload;
+  role: Role | null;
+  secretWord: string | null;
   isHost: Boolean;
   onEndDiscussion: () => void;
 }
@@ -33,6 +35,8 @@ const formatMessageTime = (timestamp: number): string => {
 
 export const DiscussionView: React.FC<DiscussionViewProps> = ({
   room,
+  role,
+  secretWord,
   isHost,
   onEndDiscussion,
 }) => {
@@ -149,6 +153,28 @@ export const DiscussionView: React.FC<DiscussionViewProps> = ({
           </p>
         </section>
 
+        {/* Role & Secret Word */}
+        <section className="mb-6 rounded-2xl border border-cyan-300/30 bg-slate-900/70 p-4 backdrop-blur-md">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-bold tracking-[0.2em] text-cyan-300">
+                YOUR ROLE &amp; CATEGORY ({room.activeCategory || "Unknown"})
+              </p>
+              {role === Role.CHAMELEON ? (
+                <p className="mt-1 text-lg font-bold text-purple-300">
+                  Chameleon — Secret word is hidden. Blend in!
+                </p>
+              ) : role === Role.AGENT ? (
+                <p className="mt-1 text-lg font-bold text-green-300">
+                  Loyal Agent — Secret Word: {secretWord || "Loading..."}
+                </p>
+              ) : (
+                <p className="mt-1 text-sm text-slate-400">Role unassigned</p>
+              )}
+            </div>
+          </div>
+        </section>
+
         {/*Pinned clue from the rounds*/}
         <section
           className="rounded-2xl border border-purple-300/30 bg-slate-1000/50 
@@ -195,12 +221,16 @@ export const DiscussionView: React.FC<DiscussionViewProps> = ({
         </section>
 
         {/*Discussion Chat*/}
-        <section className="mt-4 overflow-hidden rounded-2xl border border-cyan-300/20 bg-slate-900/70 
-        shadow-xl shadow-cyan-950/20 backdrop-blur-md">
+        <section
+          className="mt-4 overflow-hidden rounded-2xl border border-cyan-300/20 bg-slate-900/70 
+        shadow-xl shadow-cyan-950/20 backdrop-blur-md"
+        >
           <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
-            <h2 className="text-lg font-black tracking-[0.15em] text-cyan-300">CHAT</h2>
+            <h2 className="text-lg font-black tracking-[0.15em] text-cyan-300">
+              CHAT
+            </h2>
             <p className="text-xs text-slate-400">
-                Discuss your suspicions with the other players.
+              Discuss your suspicions with the other players.
             </p>
             <span className="rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-xs text-cyan-200">
               {chatMessages.length} messages
