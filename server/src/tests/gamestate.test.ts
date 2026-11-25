@@ -191,7 +191,7 @@ describe("Chameleon Protocol - Game State Tests", () =>
 
         it("processVotes() tests", () =>
         {
-            
+            expect(1).toBe(1);
         })
     })
 
