@@ -2,7 +2,7 @@
  * - Enter a display name.
  * - Create a new room as Host OR enter a 6-character room code to join an existing game.
  */
-import { socket } from "../services/socket";
+//import { socket } from "../services/socket";
 import React, { useState } from "react";
 type Screen = "home" | "join" | "host"; //the allowed screen values
 

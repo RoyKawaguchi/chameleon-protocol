@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { GameConfig, RoomStatePayload } from "../models/types";
 
 interface LobbyViewProps {
@@ -15,6 +15,22 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
   onUpdateConfig,
 }) => {
   const [clueRounds, setClueRounds] = useState(room.config.clueRounds);
+  const [discusisonTime, setDiscussionTime] = useState(
+    room.config.discussionTimeSeconds,
+  );
+  const [chameleonLastResort, setChameleonLastResort] = useState(
+    room.config.chameleonLastResort,
+  );
+
+  useEffect(() => {
+    setClueRounds(room.config.clueRounds);
+    setDiscussionTime(room.config.discussionTimeSeconds);
+    setChameleonLastResort(room.config.chameleonLastResort);
+  }, [
+    room.config.clueRounds,
+    room.config.discussionTimeSeconds,
+    room.config.chameleonLastResort,
+  ]);
 
   const handleRoundChange = (rounds: number) => {
     setClueRounds(rounds);
@@ -22,6 +38,30 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
     onUpdateConfig({
       ...room.config,
       clueRounds: rounds,
+      discussionTimeSeconds: discusisonTime,
+      chameleonLastResort,
+    });
+  };
+
+  const handleDiscussionTimeChange = (seconds: number) => {
+    setDiscussionTime(seconds);
+
+    onUpdateConfig({
+      ...room.config,
+      clueRounds,
+      discussionTimeSeconds: seconds,
+      chameleonLastResort,
+    });
+  };
+
+  const handleLastResortChange = (enabled: boolean) => {
+    setChameleonLastResort(enabled);
+
+    onUpdateConfig({
+      ...room.config,
+      clueRounds,
+      discussionTimeSeconds: discusisonTime,
+      chameleonLastResort: enabled,
     });
   };
 
@@ -89,6 +129,50 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
                       }`}
                     >
                       {round} Round{round > 1 ? "s" : ""}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* ROUND TIMER */}
+              <div className="mb-6">
+                <h3 className="mb-3 font-semibold">Discussion Timer</h3>
+
+                <div className="grid grid-cols-2 gap-3">
+                  {[60, 90, 120].map((seconds) => (
+                    <button
+                      key={seconds}
+                      type="button"
+                      onClick={() => handleDiscussionTimeChange(seconds)}
+                      className={`rounded-lg border p-3 font-bold transition${
+                        discusisonTime === seconds
+                          ? "border-cyan-300 bg-cyan-300/20 text-cyan-200"
+                          : "border-white/20 bg-slate-950/40 hover:bg-white/10"
+                      }`}
+                    >
+                      {seconds / 60} min
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* CHAMELEON CHANCE */}
+              <div className="mb-6">
+                <h3 className="mb-3 font-semibold">Chameleon Last Chance</h3>
+
+                <div className="grid grid-cols-2 gap-3">
+                  {[true, false].map((enabled) => (
+                    <button
+                      key={String(enabled)}
+                      type="button"
+                      onClick={() => handleLastResortChange(enabled)}
+                      className={`rounded-lg border p-3 font-bold transition ${
+                        chameleonLastResort === enabled
+                          ? "border-cyan-300 bg-cyan-300/20 text-cyan-200"
+                          : "border-white/20 bg-slate-950/40 hover:bg-white/10"
+                      }`}
+                    >
+                      {enabled ? "On" : "Off"}
                     </button>
                   ))}
                 </div>

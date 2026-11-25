@@ -2,6 +2,9 @@
  * Manages secret accusation votes:
  * - Tabulates votes synchronously once all players have submitted.
  * - Handles tie-breaker conditions (prioritizing host or resolving deterministically).
+ * - Track voting progress
+ * - Keeps individual votes private =
+ * - allows player to change vote until vote is cast
  */
 
 import { Player } from "../../models/Player";
@@ -24,6 +27,10 @@ export class VotingState extends GameState {
     room.broadcastState();
   }
 
+  public getVotesSubmitted(): number {
+    return this.votes.size;
+  }
+
   public handleAction(
     room: GameRoom,
     player: Player,
@@ -43,6 +50,7 @@ export class VotingState extends GameState {
       }
 
       const targetPlayer = room.players.get(payload.targetId);
+      
       if (!targetPlayer) {
         throw new Error("Target player not found in room.");
       }
@@ -113,5 +121,7 @@ export class VotingState extends GameState {
       throw new Error("Cannot transition without a single accused player.");
     room.currentState = new GameOverState(this.accusedPlayer);
     room.currentState.onEnter?.(room);
+
+    room.broadcastState();
   }
 }
