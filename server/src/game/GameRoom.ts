@@ -1,10 +1,3 @@
-/**
-- Aggregate root managing the state and behavior of a single game room.
-- - Tracks connected players, host status, and active roles.
-- - Holds the active category pool and secret word for the current round.
-- - Delegates phase-specific logic (clues, votes, transitions) to the current GameState.
- */
-
 import { ChatTextMessage, ClueMessage } from "../models/Message";
 import { Player } from "../models/Player";
 import {
@@ -22,10 +15,16 @@ import { DiscussionState } from "./states/DiscussionState";
 import { VotingState } from "./states/VotingState";
 import { GameOverState } from "./states/GameOverState";
 
+/**
+ * Aggregate root managing the state and behavior of a single game room.
+ * - Tracks connected players, host status, and active roles.
+ * - Holds the active category pool and secret word for the current round.
+ * - Delegates phase-specific logic (clues, votes, transitions) to the current GameState.
+ */
 export class GameRoom {
   public roomId: string;
-  private emit: (target: string, event: string, payload: any) => void;
-  public players: Map<string, Player>;
+  private emit: (target: string, event: string, payload: any) => void; // callback function
+  public players: Map<string, Player>; // This is a map, so as to avoid duplicate players
   public categoryPool: CategoryPool[];
   public activeCategory: string | undefined;
   public secretWord: string | null;
@@ -53,6 +52,13 @@ export class GameRoom {
           { id: "animal-3", word: "Penguin", enabled: true },
           { id: "animal-4", word: "Kangaroo", enabled: true },
           { id: "animal-5", word: "Giraffe", enabled: true },
+          { id: "animal-6", word: "Crocodile", enabled: true },
+          { id: "animal-7", word: "Flamingo", enabled: true },
+          { id: "animal-8", word: "Octopus", enabled: true },
+          { id: "animal-9", word: "Peacock", enabled: true },
+          { id: "animal-10", word: "Leopard", enabled: true },
+          { id: "animal-11", word: "Lion", enabled: true },
+          { id: "animal-12", word: "Koala", enabled: true },
         ],
       },
       {
@@ -66,6 +72,13 @@ export class GameRoom {
           { id: "food-3", word: "Tacos", enabled: true },
           { id: "food-4", word: "Burger", enabled: true },
           { id: "food-5", word: "Ramen", enabled: true },
+          { id: "food-6", word: "Pancake", enabled: true },
+          { id: "food-7", word: "Lasagna", enabled: true },
+          { id: "food-8", word: "Dumpling", enabled: true },
+          { id: "food-9", word: "Sandwich", enabled: true },
+          { id: "food-10", word: "Burrito", enabled: true },
+          { id: "food-11", word: "Waffle", enabled: true },
+          { id: "food-12", word: "Spaghetti", enabled: true },
         ],
       },
     ];
@@ -81,7 +94,11 @@ export class GameRoom {
   }
 
   /**
-- Adds a new player to the room. If they are the first player, assign them as host.
+   * Adds a new player to the room.
+   * If they are the first player, assign them as host.
+   * @param socketId Socket ID of the player being added
+   * @param username Username of the player being added
+   * @returns
    */
   public addPlayer(socketId: string, username: string): Player {
     const isHost = this.players.size === 0;
@@ -91,14 +108,17 @@ export class GameRoom {
   }
 
   /**
-- Removes a player from the room by their socket ID.
+   * Removes a player from the room by their socket ID.
+   * @param socketId Socket ID of the player being removed
    */
   public removePlayer(socketId: string): void {
     this.players.delete(socketId);
   }
 
   /**
-- Allows the host to toggle a category on/off while keeping it in the pool.
+   * Allows the host to toggle a category on/off while keeping it in the pool.
+   * @param categoryId ID of category being toggled
+   * @returns boolean of whether toggling was successful
    */
   public toggleCategory(categoryId: string): boolean {
     const category = this.categoryPool.find((cat) => cat.id === categoryId);
@@ -110,7 +130,10 @@ export class GameRoom {
   }
 
   /**
-- Allows the host to toggle an individual item inside a category on/off.
+   * Allows the host to toggle an individual item inside a category on/off.
+   * @param categoryId ID of category being toggled
+   * @param itemId ID of item being toggled
+   * @returns boolean of whether toggling was successful
    */
   public toggleCategoryItem(categoryId: string, itemId: string): boolean {
     const category = this.categoryPool.find((cat) => cat.id === categoryId);
@@ -126,7 +149,10 @@ export class GameRoom {
   }
 
   /**
-   * Creates or updates the room's single custom category (at least 1 valid word).
+   * Creates or updates the room's single custom category
+   * (at least 2 valid words).
+   * @param categoryName name of the new custom category
+   * @param words array of strings being added as items
    */
   public saveCustomCategory(categoryName: string, words: string[]): void {
     const trimmedName = categoryName.trim();
@@ -134,25 +160,28 @@ export class GameRoom {
       throw new Error("Custom category name cannot be empty.");
     }
 
+    // Filter duplicates and empty words
     const cleanedWords = Array.from(
       new Set(words.map((w) => w.trim()).filter((w) => w.length > 0)),
     );
 
-    if (cleanedWords.length < 1) {
-      throw new Error("Custom category must include at least 1 word.");
+    if (cleanedWords.length < 2) {
+      throw new Error("Custom category must include at least 2 word.");
     }
 
+    // Find the index of the existing custom category (-1 if it doesn't exist)
     const existingIndex = this.categoryPool.findIndex((cat) => cat.isCustom);
+
+    // Convert each cleaned word into a CategoryItem object
     const items = cleanedWords.map((word, idx) => ({
-      id:
-        existingIndex !== -1
-          ? `custom-item-${idx + 1}`
-          : `custom-item-${idx + 1}`,
+      id: `custom-item-${idx + 1}`, // generate ID for each custom item
       word,
       enabled: true,
     }));
 
+    // Create the custom category object with its name and items
     const customPool: CategoryPool = {
+      // Reuse the existing category ID or assign a new one
       id:
         existingIndex !== -1
           ? this.categoryPool[existingIndex]!.id
@@ -163,9 +192,11 @@ export class GameRoom {
       items,
     };
 
+    // Update existing custom category if one was found
     if (existingIndex !== -1) {
       this.categoryPool[existingIndex] = customPool;
     } else {
+      // Otherwise, add the new custom category to the category pool.
       this.categoryPool.push(customPool);
     }
   }
@@ -173,6 +204,11 @@ export class GameRoom {
   /**
 - Constructs a json payload containing room state information.
 - Then broadcasts it to all connected clients via Socket.IO. (By calling this.broadcast(event, payload))
+   */
+
+  /**
+   * Constructs a json payload containing room state information.
+   * Then broadcasts it to all connected clients via Socket.IO.
    */
   public broadcastState(): void {
     const isGameOver = this.currentState.gamePhase === GamePhase.GAME_OVER;
@@ -182,7 +218,6 @@ export class GameRoom {
         socketId: player.socketId,
         username: player.username,
         isHost: player.isHost,
-        score: player.score,
         ...(isGameOver ? { role: player.role } : {}),
       }),
     );
@@ -264,11 +299,11 @@ export class GameRoom {
   }
 
   /**
-- Sends payload to one individual socket connection.
-- Use this for private information, such as the player's role.
-- @param targetId
-- @param eventType
-- @param payload
+   * Sends payload to one individual socket connection.
+   * Use this for private information, such as the player's role or for error messages.
+   * @param targetId Socket ID of desired recipient
+   * @param eventType SocketEvent type
+   * @param payload JSON payload to be sent
    */
   public sendPrivate(
     targetId: string,
@@ -278,8 +313,7 @@ export class GameRoom {
     this.emit(targetId, eventType, payload);
   }
 
-  public getPlayerCount() : number
-  {
+  public getPlayerCount(): number {
     return this.players.size;
   }
 

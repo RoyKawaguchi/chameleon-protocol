@@ -1,23 +1,18 @@
-/**
- * Represents an individual participant in a GameRoom.
- * Uses attributes rather than complex inheritance to avoid combinatorial
- * explosion between host status, roles, and connection states.
- */
-
 import { Role } from "./types";
 
+/**
+ * Represents an individual participant in a GameRoom.
+ */
 export class Player {
   public readonly socketId: string;
   public readonly username: string;
   public isHost: boolean;
   public role: Role;
-  public readonly score: number;
 
   constructor(socketId: string, username: string, isHost: boolean = false) {
     this.socketId = socketId;
     this.username = username;
     this.isHost = isHost;
-    this.role = Role.AGENT; // Default until assigned by game start
-    this.score = 0;
+    this.role = Role.AGENT; // Defaults to AGENT until assigned by game start
   }
 }

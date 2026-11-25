@@ -9,13 +9,19 @@
 
 import React, { useEffect, useState } from "react";
 import { socket } from "../services/socket";
-import { RoomStatePayload, SocketEvent } from "../models/types";
+import { Role, RoomStatePayload, SocketEvent } from "../models/types";
 
 interface VotingViewProps {
   room: RoomStatePayload;
+  role: Role | null;
+  secretWord: string | null;
 }
 
-export const VotingView: React.FC<VotingViewProps> = ({ room }) => {
+export const VotingView: React.FC<VotingViewProps> = ({
+  room,
+  role,
+  secretWord,
+}) => {
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
 
   const currentSocketId = socket.id || "";
@@ -102,6 +108,23 @@ export const VotingView: React.FC<VotingViewProps> = ({ room }) => {
             </p>
           </section>
         )}
+        {/* Role & Secret Word */}
+        <section className="mb-6 rounded-xl border border-cyan-300/25 bg-slate-900/70 p-4 backdrop-blur-md">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="text-xs font-bold tracking-[0.2em] text-cyan-300">
+              CATEGORY: {room.activeCategory || "Unknown"}
+            </span>
+            {role === Role.CHAMELEON ? (
+              <span className="font-bold text-purple-300">Role: Chameleon</span>
+            ) : role === Role.AGENT ? (
+              <span className="font-bold text-green-300">
+                Role: Loyal Agent — Word: {secretWord || "Loading..."}
+              </span>
+            ) : (
+              <span className="text-sm text-slate-400">Role: Unassigned</span>
+            )}
+          </div>
+        </section>
 
         {/*Voting Process*/}
         <section className="mb-8 rounded-xl border border-cyan-300/20 bg-slate-900/70 p-5">

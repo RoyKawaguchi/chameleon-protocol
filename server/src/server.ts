@@ -3,25 +3,26 @@ import { Server } from "socket.io";
 import { ServerUtil } from "./ServerUtil";
 
 import { GameRoom } from "./game/GameRoom";
-import { Player } from "./models/Player";
-import {
-  SocketEvent,
-  JoinRoomPayload,
-  SubmitCluePayload,
-  GamePhase,
-} from "./models/types";
+import { SocketEvent, SubmitCluePayload } from "./models/types";
 
 import http from "http";
 import cors from "cors";
 
+// Create an Express app
 const app = express();
+
+// Enable CORS
 app.use(cors());
+
+// Allow server to handle JSON reqs
 app.use(express.json());
 
+// Create HTTP server using the Express app
 const server = http.createServer(app);
+// Set up Socket.IO for real-time communication
 const io = new Server(server, {
   cors: {
-    origin: "*", // Restrict to frontend URL later.
+    origin: "*", // Currently all sources are allowed. Replace it with frontend URL when deploying.
     methods: ["GET", "POST"],
   },
 });
@@ -30,43 +31,48 @@ app.get("/", (_req, res) => {
   res.send("Chameleon Protocol server is running.");
 });
 
-const util = new ServerUtil((target, event, payload) => {io.to(target).emit(event, payload);}); // Object containing server data structures and methods
+// Object containing server data structures and methods
+const util = new ServerUtil((target, event, payload) => {
+  io.to(target).emit(event, payload);
+});
 
 /**
-- Execute this when an intial connection is detected.
+ * Executed when an initial connection is detected.
  */
 io.on("connection", (socket) => {
   console.log(`[Connection] User connected: ${socket.id}`);
 
   socket.on(SocketEvent.CREATE_ROOM, ({ username }) => {
     // Generate unique 6-character room code
-    let roomId = util.generateRoomCode();
+    const roomId = util.generateRoomCode();
 
-    // Create a new GameRoom object with emit callback
+    // Create a new GameRoom object with emit callback func, so GameRoom can emit events itself
     const room = new GameRoom(roomId, (target, event, payload) => {
       io.to(target).emit(event, payload);
     });
 
-    // Add the host player to the room
+    // Add the host player to the GameRoom
     room.addPlayer(socket.id, username);
 
+    // Save socket ID to room ID mapping
     util.registerSocket(socket.id, roomId);
+
+    // Add socket to the Socket.IO room
     socket.join(roomId);
 
     // Add room to registry
     util.addNewRoom(roomId, room);
 
-    socket.join(roomId);
-
     console.log(
       `[Room Created] RoomID: ${roomId}, Host: ${username}, Socket: ${socket.id}`,
     );
 
-    // Broadcast room state so the host client updates to the lobby view with member list
+    // Broadcast so that the Host sees themself in member list
     room.broadcastState();
   });
 
   socket.on(SocketEvent.JOIN_ROOM, ({ username, roomCode }) => {
+    // Format roomCode
     const formattedCode = roomCode?.trim().toUpperCase();
     console.log(
       `[Join Attempt] User: ${username} attempting to join room: ${formattedCode}`,
@@ -75,6 +81,7 @@ io.on("connection", (socket) => {
     // Search the active rooms map for a matching room code
     const room = util.getRoom(formattedCode);
 
+    // Validate
     if (!room) {
       io.to(socket.id).emit(SocketEvent.ERROR_MESSAGE, {
         message: "Failed to join room: Room not found.",
@@ -87,7 +94,7 @@ io.on("connection", (socket) => {
       return;
     }
 
-    // Add player to room and map
+    // Add player to GameRoom, map, and Socket.IO room
     room.addPlayer(socket.id, username);
     util.registerSocket(socket.id, room.roomId);
     socket.join(room.roomId);
@@ -96,7 +103,7 @@ io.on("connection", (socket) => {
       `[Room Joined] RoomID: ${room.roomId}, User: ${username}, Socket: ${socket.id}`,
     );
 
-    // Broadcast updated room state to ALL players in the room (updates member list for everyone)
+    // Broadcast state to ensure member list updates for everyone
     room.broadcastState();
   });
 
@@ -104,7 +111,7 @@ io.on("connection", (socket) => {
     try {
       const [room, player] = util.getRoomAndPlayer(socket.id);
 
-      // Verify the requesting player is actually the host
+      // Verify player is host
       if (!player.isHost) {
         room.sendPrivate(socket.id, SocketEvent.ERROR_MESSAGE, {
           message: "Only the host can start the game.",
@@ -112,7 +119,7 @@ io.on("connection", (socket) => {
         return;
       }
 
-      // Delegate the start action to the current state (LobbyState)
+      // Delegate action to current state (should be LobbyState)
       room.currentState.handleAction(room, player, SocketEvent.START_GAME, {});
     } catch (error) {
       console.error(
@@ -132,6 +139,7 @@ io.on("connection", (socket) => {
   socket.on(SocketEvent.UPDATE_CONFIG, (payload) => {
     try {
       const [room, player] = util.getRoomAndPlayer(socket.id);
+      // Delegate action to current state (should be LobbyState)
       room.currentState.handleAction(
         room,
         player,
@@ -152,6 +160,7 @@ io.on("connection", (socket) => {
   socket.on(SocketEvent.TOGGLE_CATEGORY, (payload) => {
     try {
       const [room, player] = util.getRoomAndPlayer(socket.id);
+      // Delegate action to current state (should be LobbyState)
       room.currentState.handleAction(
         room,
         player,
@@ -172,6 +181,7 @@ io.on("connection", (socket) => {
   socket.on(SocketEvent.TOGGLE_CATEGORY_ITEM, (payload) => {
     try {
       const [room, player] = util.getRoomAndPlayer(socket.id);
+      // Delegate action to current state (should be LobbyState)
       room.currentState.handleAction(
         room,
         player,
@@ -192,6 +202,7 @@ io.on("connection", (socket) => {
   socket.on(SocketEvent.SAVE_CUSTOM_CATEGORY, (payload) => {
     try {
       const [room, player] = util.getRoomAndPlayer(socket.id);
+      // Delegate action to current state (should be LobbyState)
       room.currentState.handleAction(
         room,
         player,
@@ -214,6 +225,7 @@ io.on("connection", (socket) => {
       const [room, player] = util.getRoomAndPlayer(socket.id);
       const payload: SubmitCluePayload = { clueText: clueText };
 
+      // Delegate action to current state (should be CluePhaseState)
       room.currentState.handleAction(
         room,
         player,
@@ -236,6 +248,7 @@ io.on("connection", (socket) => {
     try {
       const [room, player] = util.getRoomAndPlayer(socket.id);
 
+      // Delegate action to current state (should be DiscussionState)
       room.currentState.handleAction(room, player, SocketEvent.SEND_CHAT, {
         content,
       });
@@ -254,6 +267,7 @@ io.on("connection", (socket) => {
   socket.on(SocketEvent.END_DISCUSSION, () => {
     try {
       const [room, player] = util.getRoomAndPlayer(socket.id);
+      // Delegate action to current state (should be LobbyState)
       room.currentState.handleAction(
         room,
         player,
@@ -274,6 +288,7 @@ io.on("connection", (socket) => {
   socket.on(SocketEvent.CAST_VOTE, ({ targetId }) => {
     try {
       const [room, player] = util.getRoomAndPlayer(socket.id);
+      // Delegate action to current state (should be VotingState)
       room.currentState.handleAction(room, player, SocketEvent.CAST_VOTE, {
         targetId,
       });
@@ -291,6 +306,7 @@ io.on("connection", (socket) => {
   socket.on(SocketEvent.LAST_RESORT_GUESS, (payload) => {
     try {
       const [room, player] = util.getRoomAndPlayer(socket.id);
+      // Delegate action to current state (should be GameOverState)
       room.currentState.handleAction(
         room,
         player,
@@ -311,6 +327,7 @@ io.on("connection", (socket) => {
   socket.on(SocketEvent.RETURN_TO_LOBBY, () => {
     try {
       const [room, player] = util.getRoomAndPlayer(socket.id);
+      // Delegate action to current state (should be GameOverState)
       room.currentState.handleAction(
         room,
         player,
@@ -330,14 +347,17 @@ io.on("connection", (socket) => {
 
   socket.on("disconnect", () => {
     console.log(`[Disconnection] User disconnected: ${socket.id}`);
+
+    // Find room. Skip if room doesn't exist
     // Handle removal of recently disconnected client
     util.removePlayer(socket.id);
   });
 });
 
+// Get the port from environment variables, or default to 4000
 const PORT = Number(process.env.PORT) || 4000;
 
+// Start the server and listen for incoming connections on the specified port
 server.listen(PORT, "0.0.0.0", () => {
   console.log(`Chameleon Protocol server running on port ${PORT}`);
 });
-
