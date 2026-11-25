@@ -1,8 +1,9 @@
-/**
-- Defines the message hierarchy for player and system messages.
- */
+// Defines the message hierarchy for player and system messages.
 import { Player } from "./Player";
 
+/**
+ * Abstract superclass for all Message types.
+ */
 export abstract class Message {
   public readonly id: string;
   public readonly timestamp: number;
@@ -16,8 +17,8 @@ export abstract class Message {
 }
 
 /**
-- Concrete class for a system message.
-- For example, "System: Roy's turn to send his 1st clue!"
+ * Concrete class for a system message.
+ * NOTE: not yet utilized in current implementation.
  */
 export class SystemMessage extends Message {
   public constructor(content: string) {
@@ -26,7 +27,8 @@ export class SystemMessage extends Message {
 }
 
 /**
-- Abstract class for a player message. Inherited by ClueMessage and ChatTextMessage
+ * Abstract class for a player message.
+ * Inherited by ClueMessage and ChatTextMessage
  */
 export abstract class PlayerMessage extends Message {
   public readonly sender: Player;
@@ -38,7 +40,7 @@ export abstract class PlayerMessage extends Message {
 }
 
 /**
-- Concrete class for a submitted single-word clue.
+ * Concrete class for a submitted single-word clue.
  */
 export class ClueMessage extends PlayerMessage {
   public readonly roundNumber: number;
@@ -49,6 +51,13 @@ export class ClueMessage extends PlayerMessage {
     this.roundNumber = roundNumber;
   }
 
+  /**
+   * Validates clue content to ensure it is not empty,
+   * does not exceed 15 characters,
+   * contains no spaces, and only uses letters and numbers.
+   *
+   * @param content - The clue text to validate.
+   */
   private validateClueContent(content: string): void {
     if (!content || content.trim().length === 0) {
       throw new Error("Clue cannot be empty.");
@@ -69,7 +78,7 @@ export class ClueMessage extends PlayerMessage {
 }
 
 /**
-- Standard text message sent during DiscussionState open chat.
+ * Standard text message sent during DiscussionState open chat.
  */
 export class ChatTextMessage extends PlayerMessage {
   constructor(sender: Player, content: string) {

@@ -1,13 +1,20 @@
 /**
-- Shared enums used across the server and mirrored on the client
-- to ensure type-safe event payloads.
+ * Shared enums used across the server and mirrored on the client
+ * to ensure type-safe event payloads.
  */
 
+/**
+ * Enum representing the role of a player. AGENT or CHAMELEON.
+ */
 export enum Role {
   AGENT = "AGENT",
   CHAMELEON = "CHAMELEON",
 }
 
+/**
+ * Enum representing the 5 game phases:
+ * LOBBY, CLUE_PHASE, DISCUSSION, VOTING, GAME_OVER.
+ */
 export enum GamePhase {
   LOBBY = "LOBBY",
   CLUE_PHASE = "CLUE_PHASE",
@@ -16,12 +23,19 @@ export enum GamePhase {
   GAME_OVER = "GAME_OVER",
 }
 
+/**
+ * Interface representing a single item in a category (e.g., "Lion")
+ * Used when toggling it on or off.
+ */
 export interface CategoryItem {
   id: string;
   word: string;
   enabled: boolean;
 }
 
+/**
+ * Interface representing the pool of items in a single category (e.g., "Animals").
+ */
 export interface CategoryPool {
   id: string;
   categoryName: string;
@@ -30,12 +44,21 @@ export interface CategoryPool {
   items: CategoryItem[];
 }
 
+/**
+ * Interface representing configuration settings of the game, including:
+ * Number of clue rounds per player,
+ * discussion time in seconds, and
+ * whether the chameleon can last-resort-guess or not.
+ */
 export interface GameConfig {
   clueRounds: number;
   discussionTimeSeconds: number;
   chameleonLastResort: boolean;
 }
 
+/**
+ * Enum representing all the Socket event types.
+ */
 export enum SocketEvent {
   // Client -> Server Actions
   CREATE_ROOM = "create_room",
@@ -59,6 +82,12 @@ export enum SocketEvent {
   PLAYER_DISCONNECTED = "player_disconnected",
 }
 
+// --- PAYLOAD INTERFACES ---
+// Note: Not all Socket.IO events currently have dedicated payload interfaces.
+// Some handlers construct or extract the required data directly.
+// For consistency and maintainability, we will define interfaces for all event payloads in the future.
+
+// Client -> Server payloads
 export interface CreateRoomPayload {
   username: string;
 }
@@ -98,7 +127,7 @@ export interface SaveCustomCategoryPayload {
   words: string[];
 }
 
-// Server -> Client Payload (The Room State Snapshot)
+// Server -> Client payload
 export interface RoomStatePayload {
   roomId: string;
   gamePhase: GamePhase;
@@ -129,10 +158,12 @@ export interface RoomStatePayload {
   }>;
 }
 
+/**
+ * Interface representing a single player data transfer object.
+ */
 export interface PlayerDto {
   socketId: string;
   username: string;
   isHost: boolean;
-  score: number;
   role?: string;
 }

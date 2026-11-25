@@ -13,14 +13,21 @@ import {
 import http from "http";
 import cors from "cors";
 
+// Create an Express app
 const app = express();
+
+// Enable CORS
 app.use(cors());
+
+// Allow server to handle JSON reqs
 app.use(express.json());
 
+// Create HTTP server using the Express app
 const server = http.createServer(app);
+// Set up Socket.IO for real-time communication
 const io = new Server(server, {
   cors: {
-    origin: "*", // Restrict to frontend URL later.
+    origin: "*", // Currently all sources are allowed. Replace it with frontend URL when deploying.
     methods: ["GET", "POST"],
   },
 });
@@ -34,7 +41,8 @@ const activeRooms = new Map<string, GameRoom>();
 const socketToRoomMap = new Map<string, string>();
 
 /**
-- Generates a random 6-character alphanumeric room code.
+ * Generates a random 6-character alphanumeric room code.
+ * @returns a random 6-character alphanumeric room code.
  */
 function generateRoomCode(): string {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -46,27 +54,30 @@ function generateRoomCode(): string {
 }
 
 /**
-- Execute this when an intial connection is detected.
+ * Executed when an intial connection is detected.
  */
 io.on("connection", (socket) => {
   console.log(`[Connection] User connected: ${socket.id}`);
 
   socket.on(SocketEvent.CREATE_ROOM, ({ username }) => {
-    // Generate unique 6-character room code
+    // Generate unique 6-character room code that is not taken yet
     let roomId = generateRoomCode();
     while (activeRooms.has(roomId)) {
       roomId = generateRoomCode();
     }
 
-    // Create a new GameRoom object with emit callback
+    // Create a new GameRoom object with emit callback func, so GameRoom can emit events itself
     const room = new GameRoom(roomId, (target, event, payload) => {
       io.to(target).emit(event, payload);
     });
 
+    // Save socket ID to room ID mapping
     socketToRoomMap.set(socket.id, roomId);
+
+    // Add socket to the Socket.IO room
     socket.join(roomId);
 
-    // Add the host player to the room
+    // Add the host player to the GameRoom
     room.addPlayer(socket.id, username);
 
     // Add room to registry
@@ -76,11 +87,12 @@ io.on("connection", (socket) => {
       `[Room Created] RoomID: ${roomId}, Host: ${username}, Socket: ${socket.id}`,
     );
 
-    // Broadcast room state so the host client updates to the lobby view with member list
+    // Broadcast so that the Host sees themself in member list
     room.broadcastState();
   });
 
   socket.on(SocketEvent.JOIN_ROOM, ({ username, roomCode }) => {
+    // Format roomCode
     const formattedCode = roomCode?.trim().toUpperCase();
     console.log(
       `[Join Attempt] User: ${username} attempting to join room: ${formattedCode}`,
@@ -89,6 +101,7 @@ io.on("connection", (socket) => {
     // Search the active rooms map for a matching room code
     const room = activeRooms.get(formattedCode);
 
+    // Validate
     if (!room) {
       io.to(socket.id).emit(SocketEvent.ERROR_MESSAGE, {
         message: "Failed to join room: Room not found.",
@@ -101,7 +114,7 @@ io.on("connection", (socket) => {
       return;
     }
 
-    // Add player to room and map
+    // Add player to GameRoom, map, and Socket.IO room
     room.addPlayer(socket.id, username);
     socketToRoomMap.set(socket.id, room.roomId);
     socket.join(room.roomId);
@@ -110,7 +123,7 @@ io.on("connection", (socket) => {
       `[Room Joined] RoomID: ${room.roomId}, User: ${username}, Socket: ${socket.id}`,
     );
 
-    // Broadcast updated room state to ALL players in the room (updates member list for everyone)
+    // Broadcast state to ensure member list updates for everyone
     room.broadcastState();
   });
 
@@ -118,7 +131,7 @@ io.on("connection", (socket) => {
     try {
       const [room, player] = getRoomAndPlayer(socket.id);
 
-      // Verify the requesting player is actually the host
+      // Verify player is host
       if (!player.isHost) {
         room.sendPrivate(socket.id, SocketEvent.ERROR_MESSAGE, {
           message: "Only the host can start the game.",
@@ -126,7 +139,7 @@ io.on("connection", (socket) => {
         return;
       }
 
-      // Delegate the start action to the current state (LobbyState)
+      // Delegate action to current state (should be LobbyState)
       room.currentState.handleAction(room, player, SocketEvent.START_GAME, {});
     } catch (error) {
       console.error(
@@ -146,6 +159,7 @@ io.on("connection", (socket) => {
   socket.on(SocketEvent.UPDATE_CONFIG, (payload) => {
     try {
       const [room, player] = getRoomAndPlayer(socket.id);
+      // Delegate action to current state (should be LobbyState)
       room.currentState.handleAction(
         room,
         player,
@@ -166,6 +180,7 @@ io.on("connection", (socket) => {
   socket.on(SocketEvent.TOGGLE_CATEGORY, (payload) => {
     try {
       const [room, player] = getRoomAndPlayer(socket.id);
+      // Delegate action to current state (should be LobbyState)
       room.currentState.handleAction(
         room,
         player,
@@ -186,6 +201,7 @@ io.on("connection", (socket) => {
   socket.on(SocketEvent.TOGGLE_CATEGORY_ITEM, (payload) => {
     try {
       const [room, player] = getRoomAndPlayer(socket.id);
+      // Delegate action to current state (should be LobbyState)
       room.currentState.handleAction(
         room,
         player,
@@ -206,6 +222,7 @@ io.on("connection", (socket) => {
   socket.on(SocketEvent.SAVE_CUSTOM_CATEGORY, (payload) => {
     try {
       const [room, player] = getRoomAndPlayer(socket.id);
+      // Delegate action to current state (should be LobbyState)
       room.currentState.handleAction(
         room,
         player,
@@ -228,6 +245,7 @@ io.on("connection", (socket) => {
       const [room, player] = getRoomAndPlayer(socket.id);
       const payload: SubmitCluePayload = { clueText: clueText };
 
+      // Delegate action to current state (should be CluePhaseState)
       room.currentState.handleAction(
         room,
         player,
@@ -250,6 +268,7 @@ io.on("connection", (socket) => {
     try {
       const [room, player] = getRoomAndPlayer(socket.id);
 
+      // Delegate action to current state (should be DiscussionState)
       room.currentState.handleAction(room, player, SocketEvent.SEND_CHAT, {
         content,
       });
@@ -268,6 +287,7 @@ io.on("connection", (socket) => {
   socket.on(SocketEvent.END_DISCUSSION, () => {
     try {
       const [room, player] = getRoomAndPlayer(socket.id);
+      // Delegate action to current state (should be LobbyState)
       room.currentState.handleAction(
         room,
         player,
@@ -288,6 +308,7 @@ io.on("connection", (socket) => {
   socket.on(SocketEvent.CAST_VOTE, ({ targetId }) => {
     try {
       const [room, player] = getRoomAndPlayer(socket.id);
+      // Delegate action to current state (should be VotingState)
       room.currentState.handleAction(room, player, SocketEvent.CAST_VOTE, {
         targetId,
       });
@@ -305,6 +326,7 @@ io.on("connection", (socket) => {
   socket.on(SocketEvent.LAST_RESORT_GUESS, (payload) => {
     try {
       const [room, player] = getRoomAndPlayer(socket.id);
+      // Delegate action to current state (should be GameOverState)
       room.currentState.handleAction(
         room,
         player,
@@ -325,6 +347,7 @@ io.on("connection", (socket) => {
   socket.on(SocketEvent.RETURN_TO_LOBBY, () => {
     try {
       const [room, player] = getRoomAndPlayer(socket.id);
+      // Delegate action to current state (should be GameOverState)
       room.currentState.handleAction(
         room,
         player,
@@ -345,9 +368,11 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     console.log(`[Disconnection] User disconnected: ${socket.id}`);
 
+    // Find room. Skip if room doesn't exist
     const roomId = socketToRoomMap.get(socket.id);
     if (!roomId) return;
 
+    // Remove socket ID from map
     socketToRoomMap.delete(socket.id);
 
     try {
@@ -356,8 +381,10 @@ io.on("connection", (socket) => {
 
       if (!room || !player) return;
 
+      // Check if game was in progress (i.e., not in LOBBY)
       const wasInGame = room.currentState.gamePhase !== GamePhase.LOBBY;
 
+      // Remove player from GameRoom
       room.removePlayer(socket.id);
 
       // If room is empty, delete it from active registry
@@ -367,7 +394,8 @@ io.on("connection", (socket) => {
         return;
       }
 
-      // If disconnected mid-game, announce disconnect and prompt remaining players to refresh/restart
+      // If disconnected mid-game, announce disconnect and prompt remaining players to refresh/restart (i.e., clear everything)
+      // TODO: implement more graceful, less aggressive handling of disconnection.
       if (wasInGame) {
         io.to(roomId).emit(SocketEvent.PLAYER_DISCONNECTED, {
           username: player.username,
@@ -383,7 +411,8 @@ io.on("connection", (socket) => {
         return;
       }
 
-      // If the host disconnected in the lobby, assign host to the next available player
+      // If the host disconnected in the lobby AND there is at least one player remaining,
+      // then assign host to the next available player
       if (player.isHost && room.players.size > 0) {
         const nextHost = room.players.values().next().value;
         if (nextHost) {
@@ -401,8 +430,10 @@ io.on("connection", (socket) => {
   });
 });
 
+// Get the port from environment variables, or default to 4000
 const PORT = Number(process.env.PORT) || 4000;
 
+// Start the server and listen for incoming connections on the specified port
 server.listen(PORT, "0.0.0.0", () => {
   console.log(`Chameleon Protocol server running on port ${PORT}`);
 });
