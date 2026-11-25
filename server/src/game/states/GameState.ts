@@ -11,6 +11,15 @@ export abstract class GameState {
    * Handles player actions or inputs specific to the current phase.
    */
   public gamePhase: GamePhase = GamePhase.LOBBY; // by default
+
+  /**
+   * Handles an incoming Socket event action
+   * @param room GameRoom object
+   * @param player Player object of the actor
+   * @param event SocketEvent type
+   * @param payload JSON payload sent in the event
+   * @returns void
+   */
   public abstract handleAction(
     room: GameRoom,
     player: Player,
