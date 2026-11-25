@@ -7,7 +7,7 @@
  * - Tie-breaker modal panel for host if votes result in a tie.
  */
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { socket } from "../services/socket";
 import { RoomStatePayload, SocketEvent } from "../models/types";
 
@@ -15,16 +15,26 @@ interface VotingViewProps {
   room: RoomStatePayload;
 }
 
-export const VotingView: React.FC<VotingViewProps> = ({room}) => {
+export const VotingView: React.FC<VotingViewProps> = ({ room }) => {
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
 
   const currentSocketId = socket.id || "";
   const players = room.players;
   const votesSubmitted = room.votesSubmitted ?? 0;
   const totalPlayers = players.length;
+  const isRevote = Boolean(room.isRevote);
+  const tiedPlayers = room.tiedPlayers ?? [];
+
+  useEffect(() => {
+    if (isRevote && votesSubmitted === 0) {
+      setSelectedPlayerId(null);
+    }
+  }, [isRevote, votesSubmitted]);
+
+  const tiedNamesLabel = tiedPlayers.map((p) => p.username).join(", ");
 
   const selectedPlayer = players.find(
-    (player) => player.socketId === selectedPlayerId
+    (player) => player.socketId === selectedPlayerId,
   );
 
   const handleSubmitVote = () => {
@@ -49,19 +59,23 @@ export const VotingView: React.FC<VotingViewProps> = ({room}) => {
           radial-gradient(1px 1px at 85% 85%, white, transparent),
           radial-gradient(1px 1px at 10% 90%, white, transparent)
           `,
-          backgroundSize: "auto, auto, auto, 120px 120px, 160px 160px, 200px 200px, 140px 140px, 180px 180px",
+        backgroundSize:
+          "auto, auto, auto, 120px 120px, 160px 160px, 200px 200px, 140px 140px, 180px 180px",
       }}
     >
-
       <div className="relative z-10 mx-auto max-w-6xl">
         {/*Header*/}
         <header className="mb-7 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h1 className="bg-gradient-to-r from-red-700 via-blue-300 to-purple-800 bg-clip-text text-3xl 
-            font-black tracking-wide text-transparent sm:text-4xl">
+            <h1
+              className="bg-gradient-to-r from-red-700 via-blue-300 to-purple-800 bg-clip-text text-3xl 
+            font-black tracking-wide text-transparent sm:text-4xl"
+            >
               CHAMELEON PROTOCOL
             </h1>
-            <h1 className="mb-10 mt-1 text-sm tracking-[0.2em] text-slate-400">VOTING PHASE</h1>
+            <h1 className="mb-10 mt-1 text-sm tracking-[0.2em] text-slate-400">
+              VOTING PHASE
+            </h1>
           </div>
         </header>
 
@@ -74,6 +88,20 @@ export const VotingView: React.FC<VotingViewProps> = ({room}) => {
             Select the player you suspect.
           </p>
         </section>
+
+        {/* Re-vote Banner (only if isRevote is true*/}
+        {isRevote && (
+          <section className="mb-6 rounded-xl border border-amber-300/40 bg-amber-950/40 p-4 text-center backdrop-blur-md">
+            <p className="text-sm font-black tracking-wider text-amber-200">
+              TIE VOTE — RE-VOTE REQUIRED
+            </p>
+            <p className="mt-1 text-sm text-amber-100/90">
+              {tiedNamesLabel
+                ? `Votes were tied between: ${tiedNamesLabel}. Cast your vote again.`
+                : "Votes were tied. Cast your vote again."}
+            </p>
+          </section>
+        )}
 
         {/*Voting Process*/}
         <section className="mb-8 rounded-xl border border-cyan-300/20 bg-slate-900/70 p-5">
@@ -92,9 +120,7 @@ export const VotingView: React.FC<VotingViewProps> = ({room}) => {
               className="h-full rounded-full bg-gradient-to-r from-red-400 to-purple-400 transition-all duration-500"
               style={{
                 width: `${
-                  totalPlayers > 0
-                    ? (votesSubmitted / totalPlayers) * 100
-                    : 0
+                  totalPlayers > 0 ? (votesSubmitted / totalPlayers) * 100 : 0
                 }%`,
               }}
             />
@@ -107,21 +133,16 @@ export const VotingView: React.FC<VotingViewProps> = ({room}) => {
 
         {/* Player selection grid*/}
         <section className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-
           {players.map((player) => {
-            const isSelected =
-              selectedPlayerId === player.socketId;
+            const isSelected = selectedPlayerId === player.socketId;
 
-            const isCurrentPlayer =
-              player.socketId === currentSocketId;
+            const isCurrentPlayer = player.socketId === currentSocketId;
 
             return (
               <button
                 key={player.socketId}
                 type="button"
-                onClick={() =>
-                  setSelectedPlayerId(player.socketId)
-                }
+                onClick={() => setSelectedPlayerId(player.socketId)}
                 className={`group flex flex-col items-center justify-center gap-3 rounded-2xl border p-6 transition-all duration-200 ${
                   isSelected
                     ? "scale-[1.02] border-red-300 bg-red-950/60 shadow-lg shadow-cyan-500/20"
@@ -139,16 +160,14 @@ export const VotingView: React.FC<VotingViewProps> = ({room}) => {
                 </div>
 
                 <div className="text-center">
-                  <p className="font-bold">
-                    {player.username}
-                  </p>
+                  <p className="font-bold">{player.username}</p>
 
                   <p className="mt-1 text-xs text-slate-400">
                     {isCurrentPlayer
                       ? "YOU"
                       : isSelected
-                      ? "SELECTED"
-                      : "SELECT PLAYER"}
+                        ? "SELECTED"
+                        : "SELECT PLAYER"}
                   </p>
                 </div>
 
@@ -160,12 +179,10 @@ export const VotingView: React.FC<VotingViewProps> = ({room}) => {
               </button>
             );
           })}
-
         </section>
 
         {/* confirm selection */}
         <section className="mt-8 rounded-2xl border border-purple-300/20 bg-slate-900/70 p-6 text-center">
-
           <p className="text-sm font-semibold tracking-widest text-slate-400">
             YOUR SELECTION
           </p>
@@ -175,9 +192,7 @@ export const VotingView: React.FC<VotingViewProps> = ({room}) => {
               {selectedPlayer.username}
             </h3>
           ) : (
-            <p className="mt-3 text-lg text-slate-500">
-              No player selected
-            </p>
+            <p className="mt-3 text-lg text-slate-500">No player selected</p>
           )}
 
           <button
@@ -192,13 +207,9 @@ export const VotingView: React.FC<VotingViewProps> = ({room}) => {
           <p className="mt-3 text-xs text-slate-400">
             You can update your vote until everyone has voted.
           </p>
-
         </section>
-        
-
       </div>
     </main>
-
   );
 };
 

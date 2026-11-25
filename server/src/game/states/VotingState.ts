@@ -1,10 +1,9 @@
 /**
  * Manages secret accusation votes:
  * - Tabulates votes synchronously once all players have submitted.
- * - Handles tie-breaker conditions (prioritizing host or resolving deterministically).
- * - Track voting progress
- * - Keeps individual votes private =
- * - allows player to change vote until vote is cast
+ * - Re-votes on any tie (allowing unrestricted voting again) while recording tied players.
+ * - Tracks voting progress and keeps individual votes private.
+ * - Allows a player to change their vote until all players have submitted.
  */
 
 import { Player } from "../../models/Player";
@@ -16,6 +15,8 @@ import { GamePhase, SocketEvent } from "../../models/types";
 export class VotingState extends GameState {
   private votes: Map<string, string> = new Map(); // voterSocketId -> targetSocketId
   private accusedPlayer: Player | null;
+  private revoteActive: boolean = false;
+  private tiedPlayers: Array<{ socketId: string; username: string }> = [];
 
   constructor() {
     super();
@@ -24,11 +25,22 @@ export class VotingState extends GameState {
   }
 
   public onEnter(room: GameRoom): void {
+    this.votes.clear();
+    this.revoteActive = false;
+    this.tiedPlayers = [];
     room.broadcastState();
   }
 
   public getVotesSubmitted(): number {
     return this.votes.size;
+  }
+
+  public isRevote(): boolean {
+    return this.revoteActive;
+  }
+
+  public getTiedPlayers(): Array<{ socketId: string; username: string }> {
+    return this.tiedPlayers.map((p) => ({ ...p }));
   }
 
   public handleAction(
@@ -55,7 +67,7 @@ export class VotingState extends GameState {
         throw new Error("Target player not found in room.");
       }
 
-      // Record or update vote
+      // Record or update vote (self-votes and any active room player are allowed)
       this.votes.set(player.socketId, targetPlayer.socketId);
       room.broadcastState();
 
@@ -92,18 +104,24 @@ export class VotingState extends GameState {
       }
     }
 
-    let accusedSocketId: string;
-
-    // Tie-breaker: if tied, select the host among tied players or default to the first tied player
-    if (mostVotedSocketIds.length > 1) {
-      const hostTied = mostVotedSocketIds.find(
-        (id) => room.players.get(id)?.isHost,
-      );
-      accusedSocketId = hostTied || mostVotedSocketIds[0]!;
-    } else {
-      accusedSocketId = mostVotedSocketIds[0]!;
+    if (mostVotedSocketIds.length === 0) {
+      throw new Error("No votes were recorded.");
     }
 
+    // If tied, clear votes and trigger an unrestricted re-vote
+    if (mostVotedSocketIds.length > 1) {
+      this.tiedPlayers = mostVotedSocketIds
+        .map((id) => room.players.get(id))
+        .filter((p): p is Player => Boolean(p))
+        .map((p) => ({ socketId: p.socketId, username: p.username }));
+
+      this.revoteActive = true;
+      this.votes.clear();
+      room.broadcastState();
+      return;
+    }
+
+    const accusedSocketId = mostVotedSocketIds[0]!;
     const accusedPlayer = room.players.get(accusedSocketId);
     if (!accusedPlayer) {
       const fallback = room.players.values().next().value;
@@ -112,6 +130,9 @@ export class VotingState extends GameState {
       this.transitionNext(room);
       return;
     }
+
+    this.revoteActive = false;
+    this.tiedPlayers = [];
     this.accusedPlayer = accusedPlayer;
     this.transitionNext(room);
   }

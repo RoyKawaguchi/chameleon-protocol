@@ -196,6 +196,8 @@ export class GameRoom {
       this.currentState instanceof VotingState
         ? this.currentState.getVotesSubmitted()
         : 0;
+    const votingState =
+      this.currentState instanceof VotingState ? this.currentState : null;
     const gameOverState =
       this.currentState instanceof GameOverState ? this.currentState : null;
 
@@ -218,6 +220,8 @@ export class GameRoom {
       timerEndsAt,
       currentTurnHolderSocketId: clueState.currentTurnHolder?.socketId ?? null,
       votesSubmitted,
+      isRevote: votingState ? votingState.isRevote() : false,
+      tiedPlayers: votingState ? votingState.getTiedPlayers() : [],
       winningFaction: gameOverState ? gameOverState.getWinningFaction() : null,
       awaitingLastResortGuess: gameOverState
         ? gameOverState.isAwaitingLastResortGuess()
@@ -279,14 +283,11 @@ export class GameRoom {
    *
    * Returns true if the room is able to be joined by an incoming player.
    *
-   * TODO:
-   *
-   * This function doesn't do anything right now but if a player limit is added to the room config options in the future, or other factors like that, this function can
-   * check for it.
-   *
    * @returns Boolean representing if the room is able to be joined by an incoming player
    */
-  public canJoin(): Boolean {
-    return true;
+  public canJoin(): boolean {
+    return (
+      this.players.size < 8 && this.currentState.gamePhase === GamePhase.LOBBY
+    );
   }
 }

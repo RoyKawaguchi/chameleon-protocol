@@ -112,6 +112,8 @@ export interface RoomStatePayload {
   timerEndsAt?: number | null;
   currentTurnHolderSocketId?: string | null;
   votesSubmitted?: number;
+  isRevote?: boolean;
+  tiedPlayers?: Array<{ socketId: string; username: string }>;
   winningFaction?: "AGENTS" | "CHAMELEON" | null;
   awaitingLastResortGuess?: boolean;
   chameleonGuessResult?: boolean | null;
