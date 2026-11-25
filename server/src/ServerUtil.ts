@@ -51,6 +51,10 @@ export class ServerUtil
     {
         this.socketToRoomMap.delete(socketID);
     }
+    public getRoomIDFromSocket(socketID : string)
+    {
+        return this.socketToRoomMap.get(socketID);
+    }
 
     public getRoom(roomID : string)
     {
