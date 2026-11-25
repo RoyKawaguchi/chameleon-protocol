@@ -7,11 +7,13 @@
  */
 
 import React, { useState, useEffect } from "react";
-//import { socket } from "../services/socket";
-import { RoomStatePayload } from "../models/types";
+// import { socket } from "../services/socket";
+import { Role, RoomStatePayload } from "../models/types";
 
 interface DiscussionViewProps {
   room: RoomStatePayload;
+  role: Role | null;
+  secretWord: string | null;
   isHost: Boolean;
   onEndDiscussion: () => void;
 }
@@ -26,6 +28,8 @@ const formatTime = (seconds: number): string => {
 
 export const DiscussionView: React.FC<DiscussionViewProps> = ({
   room,
+  role,
+  secretWord,
   isHost,
   onEndDiscussion,
 }) => {
@@ -131,6 +135,28 @@ export const DiscussionView: React.FC<DiscussionViewProps> = ({
           <p className="mb-10 text-sm text-center text-slate-300 sm:text-xl">
             Cast your suspicions, find the Chameleon.
           </p>
+        </section>
+
+        {/* Role & Secret Word */}
+        <section className="mb-6 rounded-2xl border border-cyan-300/30 bg-slate-900/70 p-4 backdrop-blur-md">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-bold tracking-[0.2em] text-cyan-300">
+                YOUR ROLE &amp; CATEGORY ({room.activeCategory || "Unknown"})
+              </p>
+              {role === Role.CHAMELEON ? (
+                <p className="mt-1 text-lg font-bold text-purple-300">
+                  Chameleon — Secret word is hidden. Blend in!
+                </p>
+              ) : role === Role.AGENT ? (
+                <p className="mt-1 text-lg font-bold text-green-300">
+                  Loyal Agent — Secret Word: {secretWord || "Loading..."}
+                </p>
+              ) : (
+                <p className="mt-1 text-sm text-slate-400">Role unassigned</p>
+              )}
+            </div>
+          </div>
         </section>
 
         {/*Pinned clue from the rounds*/}

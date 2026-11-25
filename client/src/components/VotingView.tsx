@@ -9,13 +9,19 @@
 
 import React, { useState } from "react";
 import { socket } from "../services/socket";
-import { RoomStatePayload, SocketEvent } from "../models/types";
+import { Role, RoomStatePayload, SocketEvent } from "../models/types";
 
 interface VotingViewProps {
   room: RoomStatePayload;
+  role: Role | null;
+  secretWord: string | null;
 }
 
-export const VotingView: React.FC<VotingViewProps> = ({room}) => {
+export const VotingView: React.FC<VotingViewProps> = ({
+  room,
+  role,
+  secretWord,
+}) => {
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
 
   const currentSocketId = socket.id || "";
@@ -24,7 +30,7 @@ export const VotingView: React.FC<VotingViewProps> = ({room}) => {
   const totalPlayers = players.length;
 
   const selectedPlayer = players.find(
-    (player) => player.socketId === selectedPlayerId
+    (player) => player.socketId === selectedPlayerId,
   );
 
   const handleSubmitVote = () => {
@@ -49,19 +55,23 @@ export const VotingView: React.FC<VotingViewProps> = ({room}) => {
           radial-gradient(1px 1px at 85% 85%, white, transparent),
           radial-gradient(1px 1px at 10% 90%, white, transparent)
           `,
-          backgroundSize: "auto, auto, auto, 120px 120px, 160px 160px, 200px 200px, 140px 140px, 180px 180px",
+        backgroundSize:
+          "auto, auto, auto, 120px 120px, 160px 160px, 200px 200px, 140px 140px, 180px 180px",
       }}
     >
-
       <div className="relative z-10 mx-auto max-w-6xl">
         {/*Header*/}
         <header className="mb-7 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h1 className="bg-gradient-to-r from-red-700 via-blue-300 to-purple-800 bg-clip-text text-3xl 
-            font-black tracking-wide text-transparent sm:text-4xl">
+            <h1
+              className="bg-gradient-to-r from-red-700 via-blue-300 to-purple-800 bg-clip-text text-3xl 
+            font-black tracking-wide text-transparent sm:text-4xl"
+            >
               CHAMELEON PROTOCOL
             </h1>
-            <h1 className="mb-10 mt-1 text-sm tracking-[0.2em] text-slate-400">VOTING PHASE</h1>
+            <h1 className="mb-10 mt-1 text-sm tracking-[0.2em] text-slate-400">
+              VOTING PHASE
+            </h1>
           </div>
         </header>
 
@@ -73,6 +83,24 @@ export const VotingView: React.FC<VotingViewProps> = ({room}) => {
           <p className="mt-3 text-slate-300 text-xl">
             Select the player you suspect.
           </p>
+        </section>
+
+        {/* Role & Secret Word */}
+        <section className="mb-6 rounded-xl border border-cyan-300/25 bg-slate-900/70 p-4 backdrop-blur-md">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="text-xs font-bold tracking-[0.2em] text-cyan-300">
+              CATEGORY: {room.activeCategory || "Unknown"}
+            </span>
+            {role === Role.CHAMELEON ? (
+              <span className="font-bold text-purple-300">Role: Chameleon</span>
+            ) : role === Role.AGENT ? (
+              <span className="font-bold text-green-300">
+                Role: Loyal Agent — Word: {secretWord || "Loading..."}
+              </span>
+            ) : (
+              <span className="text-sm text-slate-400">Role: Unassigned</span>
+            )}
+          </div>
         </section>
 
         {/*Voting Process*/}
@@ -92,9 +120,7 @@ export const VotingView: React.FC<VotingViewProps> = ({room}) => {
               className="h-full rounded-full bg-gradient-to-r from-red-400 to-purple-400 transition-all duration-500"
               style={{
                 width: `${
-                  totalPlayers > 0
-                    ? (votesSubmitted / totalPlayers) * 100
-                    : 0
+                  totalPlayers > 0 ? (votesSubmitted / totalPlayers) * 100 : 0
                 }%`,
               }}
             />
@@ -107,22 +133,17 @@ export const VotingView: React.FC<VotingViewProps> = ({room}) => {
 
         {/* Player selection grid*/}
         <section className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-
           {players.map((player) => {
-            const isSelected =
-              selectedPlayerId === player.socketId;
+            const isSelected = selectedPlayerId === player.socketId;
 
-            const isCurrentPlayer =
-              player.socketId === currentSocketId;
+            const isCurrentPlayer = player.socketId === currentSocketId;
 
             return (
               <button
                 key={player.socketId}
                 type="button"
                 disabled={isCurrentPlayer}
-                onClick={() =>
-                  setSelectedPlayerId(player.socketId)
-                }
+                onClick={() => setSelectedPlayerId(player.socketId)}
                 className={`group flex flex-col items-center justify-center gap-3 rounded-2xl border p-6 transition-all duration-200 ${
                   isSelected
                     ? "scale-[1.02] border-red-300 bg-red-950/60 shadow-lg shadow-cyan-500/20"
@@ -144,16 +165,14 @@ export const VotingView: React.FC<VotingViewProps> = ({room}) => {
                 </div>
 
                 <div className="text-center">
-                  <p className="font-bold">
-                    {player.username}
-                  </p>
+                  <p className="font-bold">{player.username}</p>
 
                   <p className="mt-1 text-xs text-slate-400">
                     {isCurrentPlayer
                       ? "YOU"
                       : isSelected
-                      ? "SELECTED"
-                      : "SELECT PLAYER"}
+                        ? "SELECTED"
+                        : "SELECT PLAYER"}
                   </p>
                 </div>
 
@@ -165,12 +184,10 @@ export const VotingView: React.FC<VotingViewProps> = ({room}) => {
               </button>
             );
           })}
-
         </section>
 
         {/* confirm selection */}
         <section className="mt-8 rounded-2xl border border-purple-300/20 bg-slate-900/70 p-6 text-center">
-
           <p className="text-sm font-semibold tracking-widest text-slate-400">
             YOUR SELECTION
           </p>
@@ -180,9 +197,7 @@ export const VotingView: React.FC<VotingViewProps> = ({room}) => {
               {selectedPlayer.username}
             </h3>
           ) : (
-            <p className="mt-3 text-lg text-slate-500">
-              No player selected
-            </p>
+            <p className="mt-3 text-lg text-slate-500">No player selected</p>
           )}
 
           <button
@@ -197,13 +212,9 @@ export const VotingView: React.FC<VotingViewProps> = ({room}) => {
           <p className="mt-3 text-xs text-slate-400">
             You can update your vote until everyone has voted.
           </p>
-
         </section>
-        
-
       </div>
     </main>
-
   );
 };
 

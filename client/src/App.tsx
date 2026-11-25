@@ -21,6 +21,7 @@ export const App: React.FC = () => {
   const [playerRole, setPlayerRole] = useState<Role | null>(null);
   const [secretWord, setSecretWord] = useState<string | null>(null);
 
+  // ---Arrow functions for emitting events to server---
   const createRoom = (username: string) => {
     socket.emit(SocketEvent.CREATE_ROOM, { username });
   };
@@ -140,12 +141,20 @@ export const App: React.FC = () => {
       return (
         <DiscussionView
           room={roomState}
+          role={playerRole}
+          secretWord={secretWord}
           isHost={isHost}
           onEndDiscussion={endDiscussion}
         />
       );
     case GamePhase.VOTING:
-      return <VotingView room={roomState} />;
+      return (
+        <VotingView
+          room={roomState}
+          role={playerRole}
+          secretWord={secretWord}
+        />
+      );
     case GamePhase.GAME_OVER:
       return (
         <GameOverView
