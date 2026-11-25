@@ -7,11 +7,11 @@ import { DiscussionState } from "./DiscussionState";
 import { SocketEvent } from "../../models/types";
 
 export class CluePhaseState extends GameState {
-  private readonly playerOrder: readonly Player[];
-  private currentRound: number;
-  private currentTurnHolder: Player | undefined;
-  private readonly clueRoundLimit: number;
-  private submittedClueTexts: Set<string> = new Set(); // Tracks lowercase clues to prevent duplicates across the game
+  protected readonly playerOrder: readonly Player[];
+  protected currentRound: number;
+  protected currentTurnHolder: Player | undefined;
+  protected readonly clueRoundLimit: number;
+  protected submittedClueTexts: Set<string> = new Set(); // Tracks lowercase clues to prevent duplicates across the game
 
   constructor(playerOrder: readonly Player[], clueRoundLimit: number) {
     super();
@@ -95,7 +95,7 @@ export class CluePhaseState extends GameState {
     }
   }
 
-  private validateRound(
+  protected validateRound(
     room: GameRoom,
     player: Player,
     clueMsg: ClueMessage,
@@ -130,10 +130,6 @@ export class CluePhaseState extends GameState {
       throw new Error(
         "This clue has already been used in this game. Please choose a unique word!",
       );
-    }
-
-    if (clueMsg.content.length === 0 || clueMsg.content.length > 15) {
-      throw new Error("Clue must be between 1 and 15 characters long.");
     }
   }
 
